@@ -51,7 +51,7 @@ class Swim:
 
         """
 
-        tpl = funcs.swim(sta.apodized().data, mov.data, self.wht, self.rad)
+        tpl = funcs.swim(sta.apodized(), mov, self.wht, self.rad)
         self.dxy = np.array([tpl[0], tpl[1]])
         self.sxy = np.array([tpl[2], tpl[3]])
         self.snr_ = tpl[4]

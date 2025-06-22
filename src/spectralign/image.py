@@ -6,7 +6,7 @@ from typing import Optional, List
 from numpy.typing import ArrayLike
 
 
-class Image:
+class Image(np.ndarray):
     """A representation of an image as a 2D array
 
     Images can be constructed in several ways:
@@ -33,6 +33,16 @@ class Image:
     
     We do not keep color information. If YxXxC images are provided, the
     color channel is averaged away with equal weights for each channel.
+
+    An Image is just a numpy array with the following additional methods:
+
+        stretch - Strech contrast of an image in place
+        stretched - Contrast-stretched copy of an image
+        scaled - Geometrically scale an image down by integer factor
+        apodize - Multiply a windowing function into an image in place
+        apodized - Apodized copy of an image
+        ascii - ASCII-art representation of an image
+        save - Save an image to a file
     """
 
     apo = None
@@ -50,47 +60,52 @@ class Image:
             raise RuntimeError("End of stream")
         return Image(data)
     
-    def __init__(self, data: ArrayLike):
-        self.data = np.array(data)
-        if self.data.dtype == np.uint8:
+    def __new__(cls, data: ArrayLike):
+        obj = np.asarray(data).view(cls)
+        if obj.dtype == np.uint8:
             scl = 255
-        elif self.data.dtype == np.uint16:
+        elif obj.dtype == np.uint16:
             scl = 65535
-        elif self.data.dtype == np.uint32:
+        elif obj.dtype == np.uint32:
             scl = 2**32 - 1
         else:
             scl = 1
-        if len(self.data.shape) == 3:
-            self.data = self.data.mean(-1).astype(np.float32)
-        if len(self.data.shape) != 2:
+        if len(obj.shape) == 3:
+            obj = obj.mean(-1).astype(np.float32)
+        if len(obj.shape) != 2:
             raise ValueError("Data must be two-dimensional")
             
-        if self.data.dtype != np.float32:
-            self.data = self.data.astype(np.float32)
+        if obj.dtype != np.float32:
+            obj = obj.astype(np.float32)
         if scl != 1:
-            self.data /= scl
-        self.apo = False
+            obj /= scl
+        return obj
 
-    def copy(self):
-        img = Image(self.data.copy())
-        return img
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+        self.apo = getattr(obj, "apo", False)
+
+
+    #def copy(self):
+    #    img = np.sarray(self).copy())
+    #    return img
         
-            
     def stretch(self, percent: float = 0.1) -> "Image":
         """STRETCH - Stretch contrast of an image in place
         STRETCH(perc) stretches the contrast of an image in-place.
         PERC specifies what percentage of pixels become white or black.
         """
-        N = self.data.size
+        N = self.size
         ilo = int(.01*stretch*N)
         ihi = int((1-.01*stretch)*N)
-        vlo = np.partition(self.data.flatten(), ilo)[ilo]
-        vhi = np.partition(self.data.flatten(), ihi)[ihi]
+        vlo = np.partition(self.flatten(), ilo)[ilo]
+        vhi = np.partition(self.flatten(), ihi)[ihi]
         nrm = np.array([1/(vhi-vlo)], dtype=np.float32)
-        self.data -= vlo
-        self.data *= nrm
-        self.data[self.data < 0] = 0
-        self.data[self.data > 1] = 1
+        self -= vlo
+        self *= nrm
+        self[self < 0] = 0
+        self[self > 1] = 1
         return self
         
     def stretched(self, percent: float = 0.1) -> "Image":
@@ -98,13 +113,13 @@ class Image:
         img.STRETCHED(perc) returns a contrast-stretched copy of an image.
         PERC specifies what percentage of pixels become white or black.
         """
-        img = Image(data=self.data.copy())
+        img = self.copy()
         img.stretch(percent)
         return img
 
     
     def scaled(self, fac: int = 2) -> "Image":
-        '''SCALED - Scale an image down by integer factor
+        '''SCALED - Geometrically scale an image down by integer factor
         im1 = img.SCALED(fac) returns a version of the image IMG scaled
         down by the given factor in both dimensions. FAC is optional and 
         defaults to 2. FAC must be integer.
@@ -112,16 +127,16 @@ class Image:
         that the width and height are a multiple of FAC.
         Pixels in the output image are the average of all underlying pixels
         in the input image.'''
-        Y, X = self.data.shape
+        Y, X = self.shape
         Y1 = Y//fac
         X1 = X//fac
-        return Image(self.data[:Y1*fac, :X1*fac]
+        return Image(self[:Y1*fac, :X1*fac]
                      .reshape(Y1, fac, X1, fac)
                      .mean((1, 3)))
         
     
     def apodize(self, gray: Optional[float] = None, force: bool = False) -> "Image":
-        '''APODIZE - Multiplies a windowing function into an image in place
+        '''APODIZE - Multiply a windowing function into an image in place
         
         img.APODIZE() multiplies the outer 1/4 of the image with a cosine 
         fadeout to gray (defined as the mean of the image, unless specifically
@@ -136,7 +151,7 @@ class Image:
         '''
         if self.apo and not force:
             return self
-        funcs.apodize(self.data, gray, inplace=True)
+        funcs.apodize(self, gray, inplace=True)
         self.apo = True
         return self
 
@@ -150,7 +165,7 @@ class Image:
         """
         if self.apo and not force:
             return self
-        img = Image(data=self.data.copy())
+        img = self.copy()
         img.apodize(gray, force)
         return img
 
@@ -161,31 +176,40 @@ class Image:
         resolution. Optional parameter WIDTH specifies the desired width of
         the output. Intended to get a quick overview for use in terminals.
         """
-        chrs = """`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"""
+        chrs = """ ·-+⊞▤▦▩■"""
         M = len(chrs)
-        Y, X = self.data.shape
+        Y, X = self.shape
         scl = int(np.round(X/width+.99))
         w1 = X // scl
         h1 = Y // scl
-        img = self.data[:h1*scl,:w1*scl].reshape(h1, scl, w1, scl).mean(-1).mean(-2)
-        img *= M
+        img = (self[:h1*scl,:w1*scl].reshape(h1, scl, w1, scl).mean(-1).mean(-2).view(np.ndarray)*M).astype(int)
         img[img<0] = 0
         img[img>=M] = M - 1
         lines = []
         for row in img:
-            lines.append([chrs[pix] for pix in img] + "\n")
+            lines.append("".join([chrs[pix] for pix in row]))
         return lines
 
-    def __str__(self):
-        return self.ascii() + f"({self.data.shape[1]} x {self.data.shape[0]})"
-
+    def __repr__(self):
+        if len(self.shape)==2:
+            return f"""Image:
+  {"\n  ".join(self.ascii())}
+Size: {self.shape[1]} x {self.shape[0]} pixels
+Min:  {self.min():.3f}
+Max:  {self.max():.3f}
+Mean: {self.mean():.3f}
+SD:   {self.std():.3f}"""
+        elif len(self.shape)==0:
+            return self.view(np.ndarray).flatten()[0].__repr__()
+        else:
+            return self.view(np.ndarray).__repr__()
     
     def save(self, path: str, qual: int = None) -> None:
-        '''SAVE - Save an image
+        '''SAVE - Save an image to a file
         img.SAVE(path) saves the image IMG to the file named PATH.
         Optional argument QUAL specifies jpeg quality as a number between
         0 and 100, and must only be given if PATH ends in ".jpg".'''
-        img = (self.data * 255.99).astype(np.uint8)
+        img = (self.view(np.ndarray) * 255.99).astype(np.uint8)
         funcs.saveImage(img, path, qual)
 
 
@@ -203,7 +227,7 @@ class Image:
         It is OK if the window does not fit fully inside of the image. In
         that case, undefined pixels are given the value of the optional
         BORDER argument, or of the average of the image if not specified.'''    
-        return Image(funcs.extractStraightWindow(self.data, xy, siz, border))
+        return Image(funcs.extractStraightWindow(self, xy, siz, border))
 
     
     def roi(self, rect: ArrayLike) -> "Image":
@@ -212,7 +236,7 @@ class Image:
         from an image.
         X0, Y0, W, and H must be integers. ROIs must fit inside the image.
         See also EXTRACTSTRAIGHTWINDOW.'''
-        return Image(funcs.roi(self.data, rect))
+        return Image(funcs.roi(self, rect))
     
         
     def transformedwindow(self, xy: ArrayLike = None,
@@ -229,7 +253,7 @@ class Image:
         If TFM is not given, an identity matrix is used.
         If XY is not given, the window is taken from the center of the image.
         To transform an entire image, AFFINE.APPLY may be easier to use.'''
-        return Image(funcs.extractTransformedWindow(self.data, xy, tfm, siz))
+        return Image(funcs.extractTransformedWindow(self, xy, tfm, siz))
 
     def rmsdelta(self, img2: "Image", margin: float = 0.05) -> float:
         """RMSDELTA - RMS difference between images
@@ -251,11 +275,7 @@ class Image:
         By default, each of the four edges is 5% of the corresponding
         image dimension. The MARGIN parameter overrides the default.
         """
-        Y, X = self.data.shape
+        Y, X = self.shape
         DY = int(margin*Y)
         DX = int(margin*X)
-        return self.data[DY:-DY, DX:-DX] - img2.data[DY:-DY, DX:-DX]
-
-    @property
-    def shape(self):
-        return self.data.shape
+        return self[DY:-DY, DX:-DX] - img2[DY:-DY, DX:-DX]
