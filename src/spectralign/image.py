@@ -1,3 +1,21 @@
+# image.py - part of spectralign
+
+## Copyright (C) 2025  Daniel A. Wagenaar
+## 
+## This program is free software: you can redistribute it and/or
+## modify it under the terms of the GNU General Public License as
+## published by the Free Software Foundation, either version 3 of the
+## License, or (at your option) any later version.
+## 
+## This program is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## General Public License for more details.
+## 
+## You should have received a copy of the GNU General Public License
+## along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
 from . import funcs
 import numpy as np
 import cv2
@@ -61,6 +79,10 @@ class Image(np.ndarray):
         return Image(data)
     
     def __new__(cls, data: ArrayLike):
+        if type(data)==str:
+            data = cv2.imread(data,
+                              cv2.IMREAD_ANYDEPTH + cv2.IMREAD_GRAYSCALE)
+
         obj = np.asarray(data).view(cls)
         if obj.dtype == np.uint8:
             scl = 255
@@ -170,13 +192,13 @@ class Image(np.ndarray):
         return img
 
     
-    def ascii(self, width: int = 40) -> List[str]:
+    def ascii(self, width: int = 15) -> List[str]:
         """ASCII - ASCII-art copy of an image
         img.ASCII() returns a copy of the image converted to ascii art at low
         resolution. Optional parameter WIDTH specifies the desired width of
         the output. Intended to get a quick overview for use in terminals.
         """
-        chrs = """ ·-+⊞▤▦▩■"""
+        chrs = """·-+⊞▤▦▩■"""
         M = len(chrs)
         Y, X = self.shape
         scl = int(np.round(X/width+.99))
