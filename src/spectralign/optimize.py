@@ -21,7 +21,8 @@ import numpy as np
 from .image import Image
 from .affine import Affine
 from typing import Optional, Tuple
-from numpy.typing import ArrayLike
+import numpy.typing
+type ArrayLike = numpy.typing.ArrayLike
 
 class Optimize:
     def __init__(self, ppa: ArrayLike, ppb: ArrayLike, rotation: bool = False):

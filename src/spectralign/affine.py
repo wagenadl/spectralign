@@ -20,7 +20,8 @@ from . import funcs
 import numpy as np
 from .image import Image
 from typing import Optional, Tuple
-from numpy.typing import ArrayLike
+import numpy.typing
+type ArrayLike = numpy.typing.ArrayLike
 import scipy.optimize
 
 class Affine(np.ndarray):

@@ -19,7 +19,8 @@
 from . import funcs
 import numpy as np
 from typing import Optional, Tuple, List, Dict
-from numpy.typing import ArrayLike
+import numpy.typing
+type ArrayLike = numpy.typing.ArrayLike
 from collections import namedtuple
 
 Match = namedtuple("Match", ("tile1", "tile2", "p1", "p2", "weight"))

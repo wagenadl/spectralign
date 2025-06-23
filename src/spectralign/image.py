@@ -19,10 +19,9 @@
 from . import funcs
 import numpy as np
 import cv2
-
 from typing import Optional, List
-from numpy.typing import ArrayLike
-
+import numpy.typing
+type ArrayLike = numpy.typing.ArrayLike
 
 class Image(np.ndarray):
     """A representation of an image as a 2D array

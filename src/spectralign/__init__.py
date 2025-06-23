@@ -26,7 +26,7 @@ own sbemalign programs.
 
 from .image import Image
 from .affine import Affine
-from .swim import Swim
+from .swim import Swim, refine
 from .optimize import Optimize
 from .placement import Placement
 from .render import Render

@@ -21,7 +21,8 @@ import numpy as np
 from .image import Image
 
 from typing import Optional, List, Tuple
-from numpy.typing import ArrayLike
+import numpy.typing
+type ArrayLike = numpy.typing.ArrayLike
 
 
 class Swim:
@@ -121,4 +122,52 @@ class Swim:
         sxy = f"({self.sxy[0]:6.2f},{self.sxy[1]:6.2f})"
         snr = f"{self.snr:6.2f}"
         return f"Swim[{dxy} ± {sxy} @ {snr}]"
+    
+
+def refine(img1: Image, img2: Image, p1: ArrayLike, p2: ArrayLike,
+           siz: int or ArrayLike,
+           iters : int = 1,
+           tol : float = 0) -> Tuple[ArrayLike, ArrayLike, Swim]:
+    """Iteratively refine a pair of matching points
+
+    Arguments:
+
+        img1, img2: the images to be overlaid
+        p1, p2: points in img1, img2 that putatively match
+        siz: size of window to grab around the points
+        iters: number of iterations to perform
+        tol: if positive, stop early if shift less than tol
+
+    Returns:
+
+        p1: updated point in first image
+        p2: updated point in second image
+        swm: the Swim from the last iteration
+
+    Up to `iters` iterations are performed. If at any time the
+    Euclidean length of the refinement is less than `tol`, the
+    process is ended early.
+
+    The returned `p1` and `p2` are better estimates of the matching
+    points in the two images.
+
+    The returned `swm` is a Swim structure that may be used to extract
+    quality estimates, including the shift, SNR, and peak width found
+    in the final iteration. The structure is augmented with a `niters`
+    field that records the number of iterations performed.
+
+    """
+    p1 = np.asarray(p1, float) # this copies, on purpose
+    p2 = np.asarray(p2, float)
+    for k in range(iters):
+        win1 = img1.straightwindow(p1, siz)
+        win2 = img2.straightwindow(p2, siz)
+        swm = Swim().align(win1, win2)
+        swm.niters = k + 1
+        dxy = swm.shift/2
+        p1 -= dxy
+        p2 += dxy
+        if tol and np.sum(dxy**2) < tol**2 / 4:
+            break
+    return p1, p2, swm
     
