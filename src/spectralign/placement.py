@@ -56,9 +56,11 @@ class Placement:
         self.matches.append(Match(tile1, tile2, p1, p2, weight))
 
         
-    def solve(self) -> Dict[Tuple, Tuple]:
+    def solve(self, verbose=False) -> Dict[Tuple, Tuple]:
         """
         """
+        if verbose:
+            print("Building matrix")
         tilemap : Dict[Tuple, int] = {}
         N = 0
         for mtch in self.matches:
@@ -70,6 +72,8 @@ class Placement:
                 N += 1
         txy = np.zeros((2, N))
         for dim in range(2):
+            if verbose:
+                print(f"Solving {dim+1}/2")
             A = np.eye(N) * self.epsilon
             b = np.zeros(N)
             for mtch in self.matches:

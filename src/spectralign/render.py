@@ -26,6 +26,13 @@ from .image import Image
 
 class Render:
     """Rendering of rigidly placed tiles
+
+    Arguments:
+
+        pos: dictionary of tile positions (from Placement.solve())
+        size: either a (W, H) tuple if all tiles have same dimensions,
+              or a dictionary mapping tile IDs to (W, H) tuples to
+              specify dimensions on a per-tile basis
     """
 
     def __init__(self, pos: Dict[Tuple, Tuple],
@@ -46,12 +53,30 @@ class Render:
         self.image = np.zeros((self.size[1], self.size[0]))
         self.alpha = np.zeros((self.size[1], self.size[0]))
 
-    def clear(self):
-        self.image[:] = 0
-        self.alpha[:] = 0
+    def clear(self) -> None:
+        """Reset the image in preparation for rendering another z-level"""
+        self.image = np.zeros((self.size[1], self.size[0]))
+        self.alpha = np.zeros((self.size[1], self.size[0]))
 
     def render(self, tile: Tuple, img: ArrayLike,
-               apo: int = 0, hard: bool = True):
+               apo: int = 0, hard: bool = True) -> None:
+        """Render a tile into model space
+
+        Arguments:
+
+           tile - ID of the tile
+           img - Image for the tile
+           apo - radius for blending near edges
+           hard - hard or soft blending
+
+        Hard blending means that pixels where tiles overlap are taken
+        from the tile where that pixel lives farthest from the edge.
+        Use the `image` property to retrieve the final image.
+
+        Soft blending means actual blending, using a cosine fall-off
+        function for alpha.
+        Use the `blended` property to retrieve the final image.
+        """
         x0 = int(np.round(self.pos[tile][0] - self.pmin[0]))
         y0 = int(np.round(self.pos[tile][1] - self.pmin[1]))
         w = img.shape[1]
@@ -84,6 +109,7 @@ class Render:
                 self.image[y0:y0+h, x0:x0+w] += alph * img
                 self.alpha[y0:y0+h, x0:x0+w] += alph
 
+    @property
     def blended(self):
         img = self.image / (self.alpha + 1e-99)
         return img
