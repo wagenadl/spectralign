@@ -74,7 +74,7 @@ class Affine(np.ndarray):
         AFM1 @= AFM2 incorporates AFM2 into AFM1, such that AFM1 becomes
         the affine transform AFM1 ∘ AFM2 that applies AFM1 after AFM2.
         """
-        self = funcs.composeAffine(self, afm)
+        self[:] = funcs.composeAffine(self, afm)[:]
         return self
 
     def __matmul__(self, afm: "Affine") -> "Affine":
@@ -195,7 +195,7 @@ class Affine(np.ndarray):
 
         The value is always exact.
         """
-        return self[:,2].view(tye=np.ndarray)
+        return self[:,2].view(type=np.ndarray)
 
     def centerofrotation(self) -> np.ndarray:
         """CENTEROFROTATION - Approximate center of rotation
@@ -213,7 +213,7 @@ class Affine(np.ndarray):
         AC - C = -B
         (A - 1) C = -B"""
 
-        return np.linalg.solve(self[:,:2] - np.eye(2), -self[:,2]).view(tye=np.ndarray)
+        return np.linalg.solve(self[:,:2] - np.eye(2), -self[:,2]).view(type=np.ndarray)
 
     @staticmethod
     def translator(dx: float, dy: float):
