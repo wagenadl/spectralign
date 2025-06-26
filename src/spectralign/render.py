@@ -24,15 +24,21 @@ from collections import namedtuple
 from .image import Image
 
 
-class Render:
+class RenderRigid:
     """Rendering of rigidly placed tiles
 
     Arguments:
 
-        pos: dictionary of tile positions (from Placement.solve())
+        pos: dictionary of tile positions (from Placement.rigid())
         size: either a (W, H) tuple if all tiles have same dimensions,
               or a dictionary mapping tile IDs to (W, H) tuples to
               specify dimensions on a per-tile basis
+
+    Use the `render` method to render a source image into model space.
+
+    Use the `clear` method between z-levels.
+
+    Use the `image` or `blended` properties to retrieve results.
     """
 
     def __init__(self, pos: Dict[Tuple, Tuple],

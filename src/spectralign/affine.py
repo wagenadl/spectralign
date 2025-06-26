@@ -60,12 +60,9 @@ class Affine(np.ndarray):
         res = afm.APPLY(img, rect), where rect is an (x0,y0,w,h)-tuple
         returns the given rectangle of model space.
         
-        Example: if AFM is the result of MIRAFFINE(pstat, pmov), where PSTAT
-        and PMOV are corresponding points on a stationary image ISTAT and a
-        moving image IMOV, then afm.APPLY(imov) overlays the moving
-        image on top of the stationary image.
+        Note that AFM must map from image space to model space.
         """
-        return Image(funcs.affineImage(self, img, rect))
+        return Image(funcs.affineImage(self.inverse(), img, rect))
 
     
     def __imatmul__(self, afm: "Affine") -> "Affine":
@@ -216,19 +213,22 @@ class Affine(np.ndarray):
         return np.linalg.solve(self[:,:2] - np.eye(2), -self[:,2]).view(type=np.ndarray)
 
     @staticmethod
-    def translator(dx: float, dy: float):
+    def translator(dxy: ArrayLike):
+        dx, dy = dxy
         return Affine([[1., 0, dx], [0, 1., dy]])
     
     @staticmethod
-    def rotator(phi: float, x0: float = 0, y0: float = 0) -> "Affine":
+    def rotator(phi: float, xy0: ArrayLike = [0,0]) -> "Affine":
         c = np.cos(phi)
         s = np.sin(phi)
-        return (Affine.translator(x0, y0)
+        x0, y0 = xy0
+        return (Affine.translator([x0, y0])
                 @ Affine([[c, -s, 0], [s, c, 0]])
-                @ Affine.translator(-x0, -y0))
+                @ Affine.translator([-x0, -y0]))
 
     @staticmethod
-    def scaler(s: float, x0: float = 0, y0: float = 0) -> "Affine":
+    def scaler(s: float, xy0: ArrayLike = [0,0]) -> "Affine":
+        x0, y0 = xy0
         return Affine([[s, 0., x0*(1-s)], [0., s, y0*(1-s)]])
     
     
