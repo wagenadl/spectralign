@@ -22,55 +22,58 @@ import cv2
 from typing import Optional, List
 import numpy.typing
 type ArrayLike = numpy.typing.ArrayLike
+
 try:
     from numba import jit
-    _havejit = True
 except ImportError:
-    _havejit = False
+    # Create fake jit
+    def jit(nopython=True):
+        def decor(func):
+            def wrap(*args, **kwargs):
+                return func(*args, **kwargs)
+            return wrap
+        return decor
 
-
-if _havejit:
-    # Following function from https://gist.github.com/bzamecnik/33e10b13aae34358c16d1b6c69e89b01
-    @jit(nopython=True)
-    def floyd_steinberg(image):
-        # image: np.array of shape (height, width), dtype=float, 0.0-1.0
-        # works in-place!
-        h, w = image.shape
-        for y in range(h):
-            for x in range(w):
-                old = image[y, x]
-                new = np.round(old)
-                image[y, x] = new
-                error = old - new
-                # precomputing the constants helps
-                if x + 1 < w:
-                    image[y, x + 1] += error * 0.4375 # right, 7 / 16
-                if (y + 1 < h) and (x + 1 < w):
-                    image[y + 1, x + 1] += error * 0.0625 # right, down, 1 / 16
-                if y + 1 < h:
-                    image[y + 1, x] += error * 0.3125 # down, 5 / 16
-                if (x - 1 >= 0) and (y + 1 < h): 
-                    image[y + 1, x - 1] += error * 0.1875 # left, down, 3 / 16
-        return image
+# Following function from https://gist.github.com/bzamecnik/33e10b13aae34358c16d1b6c69e89b01
+@jit(nopython=True)
+def floyd_steinberg(image):
+    # image: np.array of shape (height, width), dtype=float, 0.0-1.0
+    # works in-place!
+    h, w = image.shape
+    for y in range(h):
+        for x in range(w):
+            old = image[y, x]
+            new = np.round(old)
+            image[y, x] = new
+            error = old - new
+            # precomputing the constants helps
+            if x + 1 < w:
+                image[y, x + 1] += error * 0.4375 # right, 7 / 16
+            if (y + 1 < h) and (x + 1 < w):
+                image[y + 1, x + 1] += error * 0.0625 # right, down, 1 / 16
+            if y + 1 < h:
+                image[y + 1, x] += error * 0.3125 # down, 5 / 16
+            if (x - 1 >= 0) and (y + 1 < h): 
+                image[y + 1, x - 1] += error * 0.1875 # left, down, 3 / 16
+    return image
     
 
-if _havejit:
-    @jit(nopython=True)
-    def braillepix(img):
-        p = 0
-        k = 1
-        for dx in range(2):
-            for dy in range(3):
-                if img[dy,dx]:
-                    p += k
-                k *= 2
-        for dx in range(2):
-            for dy in [3]:
-                if img[dy,dx]:
-                    p += k
-                k *= 2
+@jit(nopython=True)
+def braillepix(img):
+    p = 0
+    k = 1
+    for dx in range(2):
+        for dy in range(3):
+            if img[dy,dx]:
+                p += k
+            k *= 2
+    for dx in range(2):
+        for dy in [3]:
+            if img[dy,dx]:
+                p += k
+            k *= 2
 
-        return chr(0x2800 + p)
+    return chr(0x2800 + p)
     
     
 
@@ -265,8 +268,6 @@ class Image(np.ndarray):
         return lines
 
     def braille(self, height: int = 88) -> List[str]:
-        if not _havejit:
-            return self.ascii(height//4)
         Y, X = self.shape
         scl = int(np.round(Y/height+.99))
         w1 = X // scl
