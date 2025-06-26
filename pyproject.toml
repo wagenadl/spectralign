@@ -10,6 +10,7 @@ authors = [
 description = "Python implementation of SWIFT-IR"
 readme = "README.md"
 version = "0.3.0"
+license = "GPL-3.0-or-later"
 dependencies = [
     "numpy",
     "scipy",
@@ -18,7 +19,6 @@ dependencies = [
 requires-python = ">=3.12"
 classifiers = [ 
   "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
   "Operating System :: OS Independent"
 ]
 
