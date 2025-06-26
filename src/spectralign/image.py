@@ -22,6 +22,57 @@ import cv2
 from typing import Optional, List
 import numpy.typing
 type ArrayLike = numpy.typing.ArrayLike
+try:
+    from numba import jit
+    _havejit = True
+except ImportError:
+    _havejit = False
+
+
+if _havejit:
+    # Following function from https://gist.github.com/bzamecnik/33e10b13aae34358c16d1b6c69e89b01
+    @jit(nopython=True)
+    def floyd_steinberg(image):
+        # image: np.array of shape (height, width), dtype=float, 0.0-1.0
+        # works in-place!
+        h, w = image.shape
+        for y in range(h):
+            for x in range(w):
+                old = image[y, x]
+                new = np.round(old)
+                image[y, x] = new
+                error = old - new
+                # precomputing the constants helps
+                if x + 1 < w:
+                    image[y, x + 1] += error * 0.4375 # right, 7 / 16
+                if (y + 1 < h) and (x + 1 < w):
+                    image[y + 1, x + 1] += error * 0.0625 # right, down, 1 / 16
+                if y + 1 < h:
+                    image[y + 1, x] += error * 0.3125 # down, 5 / 16
+                if (x - 1 >= 0) and (y + 1 < h): 
+                    image[y + 1, x - 1] += error * 0.1875 # left, down, 3 / 16
+        return image
+    
+
+if _havejit:
+    @jit(nopython=True)
+    def braillepix(img):
+        p = 0
+        k = 1
+        for dx in range(2):
+            for dy in range(3):
+                if img[dy,dx]:
+                    p += k
+                k *= 2
+        for dx in range(2):
+            for dy in [3]:
+                if img[dy,dx]:
+                    p += k
+                k *= 2
+
+        return chr(0x2800 + p)
+    
+    
 
 class Image(np.ndarray):
     """A representation of an image as a 2D array
@@ -191,19 +242,21 @@ class Image(np.ndarray):
         return img
 
     
-    def ascii(self, width: int = 15) -> List[str]:
+    def ascii(self, height: int = 22) -> List[str]:
         """ASCII - ASCII-art copy of an image
         img.ASCII() returns a copy of the image converted to ascii art at low
-        resolution. Optional parameter WIDTH specifies the desired width of
-        the output. Intended to get a quick overview for use in terminals.
+        resolution. Optional parameter HEIGHT specifies the desired height
+        of the output. Intended to get a quick overview for use in
+        terminals.
         """
         chrs = """·-+⊞▤▦▩■"""
         M = len(chrs)
         Y, X = self.shape
-        scl = int(np.round(X/width+.99))
+        scl = int(np.round(Y/height+.99))
         w1 = X // scl
         h1 = Y // scl
-        img = (self[:h1*scl,:w1*scl].reshape(h1, scl, w1, scl).mean(-1).mean(-2).view(np.ndarray)*M).astype(int)
+        img = self[:h1*scl,:w1*scl].reshape(h1, scl, w1, scl)
+        img = (img.mean(-1).mean(-2).view(np.ndarray)*M).astype(int)
         img[img<0] = 0
         img[img>=M] = M - 1
         lines = []
@@ -211,19 +264,45 @@ class Image(np.ndarray):
             lines.append("".join([chrs[pix] for pix in row]))
         return lines
 
+    def braille(self, height: int = 88) -> List[str]:
+        if not _havejit:
+            return self.ascii(height//4)
+        Y, X = self.shape
+        scl = int(np.round(Y/height+.99))
+        w1 = X // scl
+        h1 = Y // scl
+        img = self[:h1*scl,:w1*scl].reshape(h1, scl, w1, scl)
+        img = img.mean(-1).mean(-2)
+        img[img<0] = 0
+        img[img>1] = 1
+        img = floyd_steinberg(img)
+        out = []
+        for y in range(0, h1-3, 4):
+            line = ''
+            for x in range(0, w1-1, 2):
+                line += braillepix(img[y:y+4, x:x+2])
+            out.append(line)
+        return out
+
     def __repr__(self):
         if len(self.shape)==2:
-            return f"""Image:
-  {"\n  ".join(self.ascii())}
-Size: {self.shape[1]} x {self.shape[0]} pixels
-Min:  {self.min():.3f}
-Max:  {self.max():.3f}
-Mean: {self.mean():.3f}
-SD:   {self.std():.3f}"""
+            lines = self.braille()
+            while len(lines) < 6:
+                lines.append('')
+            lines[-6] += f"   Width:  {self.shape[1]} px"
+            lines[-5] += f"   Height: {self.shape[0]} px"
+            lines[-4] += f"   Min:  {self.min():.3f}"
+            lines[-3] += f"   Max:  {self.max():.3f}"
+            lines[-2] += f"   Mean: {self.mean():.3f}"
+            lines[-1] += f"   SD:   {self.std():.3f}"
+            return "\n".join(lines)
         elif len(self.shape)==0:
             return self.view(np.ndarray).flatten()[0].__repr__()
         else:
             return self.view(np.ndarray).__repr__()
+
+    def __str__(self):
+        return self.__repr__()
     
     def save(self, path: str, qual: int = None) -> None:
         '''SAVE - Save an image to a file

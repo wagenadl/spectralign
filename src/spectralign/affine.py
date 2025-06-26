@@ -50,6 +50,9 @@ class Affine(np.ndarray):
             return self.view(type=np.ndarray).flatten()[0].__repr__()
         else:
             return self.view(type=np.ndarray).__repr__()
+
+    def __str__(self):
+        return self.__repr__()
         
     
     def apply(self, img: Image, rect: Optional[ArrayLike] = None) -> Image:
