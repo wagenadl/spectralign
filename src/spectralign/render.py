@@ -56,8 +56,7 @@ class RenderRigid:
         self.pmin = pmin
         self.pmax = pmax
         self.pos = pos
-        self.image = np.zeros((self.size[1], self.size[0]))
-        self.alpha = np.zeros((self.size[1], self.size[0]))
+        self.clear()
 
     def clear(self) -> None:
         """Reset the image in preparation for rendering another z-level"""

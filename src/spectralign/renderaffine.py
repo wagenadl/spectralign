@@ -136,7 +136,7 @@ class RenderAffine:
             else:
                 alph = afm.apply(buildalph(), self.rect)
                 mask = alph > self.alpha
-                self.img[mask] = img1[mask]
+                self.image[mask] = img1[mask]
                 self.alpha[mask] = alph[mask]
         else:
             if apo == 0:

@@ -225,8 +225,10 @@ class Placement:
             # There are no constant dE/dL terms
             
         for mtch in self.matches:
-            addmatch(mtch.tile1, mtch.tile2, mtch.p1, mtch.p2, mtch.weight)
-            addmatch(mtch.tile2, mtch.tile1, mtch.p2, mtch.p1, mtch.weight)
+            t1 = tilemap[mtch.tile1]
+            t2 = tilemap[mtch.tile2]
+            addmatch(t1, t2, mtch.p1, mtch.p2, mtch.weight)
+            addmatch(t2, t1, mtch.p2, mtch.p1, mtch.weight)
         addLterms()
         
         if fix is not None:
