@@ -15,20 +15,40 @@
 ## You should have received a copy of the GNU General Public License
 ## along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-'''spectralign - Image registration tools using partially whitened spectra
+"""spectralign - Image registration tools using partially whitened spectra
 
-This is a reimplementation by Daniel Wagenaar <daw@caltech.edu> of
-some of the original SWiFT-IR programs (swim, mir, iscale, iavg,
-remod) written by Art Wetzel <awetzel@psc.edu>, as well as some of my
-own sbemalign programs.
+Acknowledgments
+---------------
 
-'''
+The core logic of the `Matcher.refine` method is a reimplementation of
+the “swim” program in the “SWiFT-IR” package by Art Wetzel
+<awetzel@psc.edu> at the Pittsburgh Supercomputer Center. This method
+was described in:
+
+    Wetzel AW, Bakal J, Dittrich M, Hildebrand DGC, Morgan HL,
+    Lichtman JW. 2016. Registering large volume serial-section
+    electron microscopy image sets for neural circuit reconstruction
+    using fft signal whitening. Proc. IEEE Applied Imagery Pattern
+    Recognition Workshop. https://doi.org/10.1109/AIPR.2016.8010595.
+
+That package also contained an antecedent of the `Placement.affine`
+method (“mir”), although the approach to handling more than two images
+in “SWiFT-IR” is very different from ours.
+
+The core logic of the `Placement.rigid` method derives from a
+conversation with Stephan Saalfeld <saalfelds@janelia.hhmi.org> at
+Janelia. This method was described in:
+
+    Ashaber M, Tomina Y, Kassraian P, Bushong EA, Kristan WB, Ellisman
+    MH, Wagenaar DA, 2021. Anatomy and activity patterns in a
+    multifunctional motor neuron and its surrounding circuits. Elife
+    10, e61881. https://doi.org/10.7554/eLife.61881.
+
+"""
 
 from .image import Image
 from .affine import Affine
-from .swim import Swim, refine
+from .swim import Matcher
 from .placement import Placement
 from .render import RenderRigid
 from .renderaffine import RenderAffine
-from . import funcs
-

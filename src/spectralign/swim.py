@@ -126,8 +126,11 @@ class Swim:
 
 def refine(img1: Image, img2: Image, p1: ArrayLike, p2: ArrayLike,
            siz: int or ArrayLike,
-           iters : int = 1,
-           tol : float = 0) -> Tuple[ArrayLike, ArrayLike, Swim]:
+           iters: int = 1,
+           tol: float = 0,
+           every: bool = False,
+           wht: float = -0.65,
+           rad: int = 5) -> Tuple[ArrayLike, ArrayLike, Swim]:
     """Iteratively refine a pair of matching points
 
     Arguments:
@@ -159,15 +162,111 @@ def refine(img1: Image, img2: Image, p1: ArrayLike, p2: ArrayLike,
     """
     p1 = np.asarray(p1, float) # this copies, on purpose
     p2 = np.asarray(p2, float)
+    swms = []
     for k in range(iters):
         win1 = img1.straightwindow(p1, siz)
         win2 = img2.straightwindow(p2, siz)
-        swm = Swim().align(win1, win2)
+        swm = Swim(wht, rad).align(win1, win2)
         swm.niters = k + 1
+        swms.append(swm)
         dxy = swm.shift/2
         p1 -= dxy
         p2 += dxy
         if tol and np.sum(dxy**2) < tol**2 / 4:
             break
-    return p1, p2, swm
+    if every:
+        return p1, p2, swms
+    else:
+        return p1, p2, swm
+
+
+class Matcher:
+    """Tool to find matching points between a pair of images
+
+    Arguments:
+
+        img1, img2: The images to study
+
+    Use the `refine` method to identify matching points in the images.
+    """
+    def __init__(self, img1: Image, img2: Image):
+        self.img1 = img1
+        self.img2 = img2
+        self.wht = None
+        self.rad = None
+        self.shifts = []
+        self.peakwidths = []
+        self.snrs = []
+        self.setpeakradius()
+        self.setprewhiten()
+
+    def setpeakradius(self, rad: int = 5):
+        self.rad = rad
+
+    def setprewhiten(self, wht: float = -0.65):
+        self.wht = float(wht)
+
+    def refine(self,
+               p1: ArrayLike, p2: ArrayLike,
+               size: int or ArrayLike,
+               iters : int = 1,
+               tolerance : float = 0) -> Tuple[ArrayLike, ArrayLike]:
+        """Iteratively refine a pair of matching points
+
+    Arguments:
+
+        p1, p2: points in img1, img2 that putatively match
+        siz: size of window to grab around the points
+        iters: number of iterations to perform
+        tol: if positive, stop early if shift less than tol
+
+    Returns:
+
+        p1: updated point in first image
+        p2: updated point in second image
+
+    The returned `p1` and `p2` are better estimates of the matching
+    points in the two images.
+
+    Up to `iters` iterations are performed. If at any time the
+    Euclidean length of the refinement is less than `tolerance`, the
+    process is ended early.
+
+    After `refine` returns, several properties are set on the Matcher:
+
+       shifts: (x, y) pairs of shifts in each iteration
+    
+       peakwidths: (sx, sy) pairs of the size of the spectral peaks
+                   found in each iteration
+
+       snrs: signal-to-noise ratios found in each iteration
+
+       niters: the number of iterations performed
+
+    In addition, `shift`, `peakwidth`, and `snr` may be used to obtain
+    information from the final iteration.
+    """      
+        p1, p2, swms = refine(self.img1, self.img2, p1, p2, size,
+                              iters=iters, tol=tolerance,
+                              wht=self.wht, rad=self.rad, every=True)
+        self.shifts = [swm.dxy for swm in swms]
+        self.peakwidths = [swm.sxy for swm in swms]
+        self.snrs = [swm.snr for swm in swms]
+        return p1, p2
+
+    @property
+    def niters(self):
+        return len(self.shifts)
+
+    @property
+    def shift(self):
+        return self.shifts[-1]
+
+    @property
+    def peakwidth(self):
+        return self.peakwidths[-1]
+
+    @property
+    def snr(self):
+        return self.snrs[-1]
     
