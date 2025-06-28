@@ -23,7 +23,7 @@ type ArrayLike = numpy.typing.ArrayLike
 from collections import namedtuple
 from .image import Image
 from .affine import Affine
-
+from scipy.signal import butter, filtfilt
 
 class RenderAffine:
     """Rendering of tiles with affine placement
@@ -48,8 +48,10 @@ class RenderAffine:
 
     def __init__(self, afms: Dict[Tuple, Tuple],
                  size: Dict[Tuple, Tuple] or Tuple,
-                 clip: ArrayLike or bool = False):
+                 clip: ArrayLike or bool = False,
+                 border=10):
         self.afms = afms
+        self.border = border
         if type(size) == dict:
             self.imgsizes = size
         else:
@@ -95,59 +97,42 @@ class RenderAffine:
 
     def clear(self) -> None:
         """Reset the image in preparation for rendering another z-level"""
-        self.image = np.zeros(self.size[::-1])
-        self.alpha = np.zeros(self.size[::-1])
+        self.image = Image(np.zeros(self.size[::-1]))
+        self.support = Image(np.zeros(self.size[::-1]))
 
-    def render(self, tile: Tuple, img: ArrayLike,
-               apo: int = 0, hard: bool = True) -> None:
+    def render(self, tile: Tuple, img: ArrayLike) -> None:
         """Render a tile into model space
 
         Arguments:
 
            tile - ID of the tile
            img - Image for the tile
-           apo - radius for blending near edges
-           hard - hard or soft blending
 
-        Hard blending means that pixels where tiles overlap are taken
-        from the tile where that pixel lives farthest from the edge.
-        Use the `image` property to retrieve the final image.
-
-        Soft blending means actual blending, using a cosine fall-off
-        function for alpha.
-        Use the `blended` property to retrieve the final image.
         """
         h, w = img.shape
         def buildalph():
             apox = np.ones(w)
             apoy = np.ones(h)
-            apox[:apo] = .5 - .5*np.cos(np.pi*np.arange(apo)/apo)
-            apox[-apo:] = .5 + .5*np.cos(np.pi*np.arange(apo)/apo)
-            apoy[:apo] = .5 - .5*np.cos(np.pi*np.arange(apo)/apo)
-            apoy[-apo:] = .5 + .5*np.cos(np.pi*np.arange(apo)/apo)
-            return apox.reshape(1, -1) * apoy.reshape(-1, 1)
+            w2 = min(w//2, h//2)
+            wc = np.arange(w2)/w2
+            apox[:w2] = wc
+            apox[-w2:] = wc[::-1]
+            apoy[:w2] = wc
+            apoy[-w2:] = wc[::-1]
+            return np.min([apox.reshape(1,-1).repeat(h,0),
+                           apoy.reshape(-1,1).repeat(w,1)], 0)
         afm = self.shifter @ self.afms[tile]
         img1 = afm.apply(img, self.rect)
-        if hard:
-            if apo == 0:
-                mask = afm.apply(np.ones(img.shape), self.rect).astype(bool)
-                self.image[mask] = img1[mask]
-                self.alpha = np.max((self.alpha, mask), 0)
-            else:
-                alph = afm.apply(buildalph(), self.rect)
-                mask = alph > self.alpha
-                self.image[mask] = img1[mask]
-                self.alpha[mask] = alph[mask]
-        else:
-            if apo == 0:
-                mask = afm.apply(np.ones(img.shape), self.rect).astype(bool)
-                self.image[mask] += img1[mask]
-                self.alpha[mask] += 1
-            else:
-                alph = afm.apply(buildalph(), self.rect)
-                self.image += alph * img1
-                self.alpha += alph
-
+        sup1 = afm.apply(buildalph(), self.rect)
+        mask = sup1 > self.support
+        b,a = butter(1, 1/self.border)
+        mask = filtfilt(b, a, mask, axis=0)
+        mask = filtfilt(b, a, mask, axis=1)
+        mask[sup1 == 0] = 0
+        mask[self.support == 0] = 1
+        self.image = (1-mask)*self.image + mask * img1
+        self.support = np.max([self.support, sup1], 0)
+        
     def unionmask(self):
         img = np.zeros(self.size[::-1], bool)
         for t in self.afms:
@@ -166,9 +151,3 @@ class RenderAffine:
             img &= mask
         return img
         
-                
-    @property
-    def blended(self):
-        img = self.image / (self.alpha + 1e-99)
-        return img
-    
