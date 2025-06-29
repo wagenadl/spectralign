@@ -18,9 +18,9 @@ framework that proceeds according to three steps:
 
 - **Tile**: A source image. Tiles are commonly organized in z-stacks
   and/or in (row, column) grid layouts. Regardless, we index tiles
-  with variable names like $t$, $t'$, etc. Depending on the natural
-  structure of your image set, you may consider $t$ to be an alias for
-  $z$ within a stack, or a shorthand for ($r$, $c$) within a slice,
+  with variable names like *t*, *t*', etc. Depending on the natural
+  structure of your image set, you may consider *t* to be an alias for
+  *z* within a stack, or a shorthand for (*r*, *c*) within a slice,
   etc.
 
 - **Z-stack**: A collection of tiles that occupy roughly the same area
@@ -31,8 +31,8 @@ framework that proceeds according to three steps:
 
 - **Tile set**: All the tiles that make up the image data to be aligned.
 
-- **Point**: An $(x,y$) pixel position in a given tile.  Commonly, we
-  use variable names like $\boldsymbol p$ and $\boldsymbol p'$ to label points.
+- **Point**: An (*x*, *y*) pixel position in a given tile.  Commonly, we
+  use variable names like ***p*** and ***p***' to label points.
 
 - **Tile space**: Coordinates on a tile. Points live in tile space. 
 
@@ -45,8 +45,8 @@ framework that proceeds according to three steps:
   the global model space.
 
 With this terminology, we can say that the **Matching** step consists
-of identifying pairs of **points** $\boldsymbol p$ and $\boldsymbol p'$ that live in
-the **tile spaces** of **tiles** $t$ and $t'$ respectively that should
+of identifying pairs of **points** ***p*** and ***p***' that live in
+the **tile spaces** of **tiles** *t* and *t*' respectively that should
 map to the same **location** in **model space**. Meanwhile, the
 **Placement** step consists of finding **Transformations** that
 realize that goal, and the **Rendering** step produces output images
@@ -65,11 +65,11 @@ Spectralign may be obtained by
 ### Two horizontally adjacent tiles
 
 As a most basic example, consider a single slice scanned in two
-horizontally adjacent tiles, each of size $W \times H$ pixels, and
+horizontally adjacent tiles, each of size *W \times H* pixels, and
 with approximately 20% overlap between adjacent tiles. That means that
-we should expect an area around the point $\boldsymbol p_0 = (0.9 W, 0.5 H)$
-in the first tile to correspond to a like area around point $\boldsymbol p_0'
-= (0.1W, 0.5H)$ in the second tile. We can inform spectralign about
+we should expect an area around the point *p_0 = (0.9 W, 0.5 H)*
+in the first tile to correspond to a like area around point *p_0'
+= (0.1W, 0.5H)* in the second tile. We can inform spectralign about
 this situation as follows:
 
 ```python
@@ -81,7 +81,7 @@ p0 = (0.9 * W, 0.5 * H)
 p0_ = (0.1 * W, 0.5 * H)
 ```
 
-(Python variable names may not contain primes ($'$) so I use an
+(Python variable names may not contain primes (**') so I use an
 underscore instead.)
 
 Naturally, these points don't correspond perfectly. In this particular
@@ -98,7 +98,7 @@ regions whos dimensions are an integer power of two. But you could
 have written `size=(0.2 * W, 0.8 * H)` and obtained largely identical
 results.)
 
-Now, $\boldsymbol p$ and $\boldsymbol p'$ are spectralign's estimate of points that
+Now, ***p*** and ***p***' are spectralign's estimate of points that
 actually match.
 
 If we assume that the only transformation needed to align these images
@@ -110,7 +110,7 @@ placement.addmatch(1, 2, p, p_)
 pos = placement.rigid()
 ```
 
-where I chose arbitrary labels $t = 1$ and $2$ for the two
+where I chose arbitrary labels *t = 1* and *2* for the two
 tiles. Creating a composite output image is then straightforward:
 
 ```python
@@ -122,7 +122,7 @@ out = renderer.image
 
 The result is not bad, considering that these images were obtained
 with a handheld camera, but we can do better. Since we now know that
-$\boldsymbol p$ and $\boldsymbol p'$ are closely corresponding points, we can find a
+***p*** and ***p***' are closely corresponding points, we can find a
 whole grid of matching points, using smaller source rectangles to
 obtain more local results:
 
