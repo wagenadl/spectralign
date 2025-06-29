@@ -133,9 +133,11 @@ class Image(np.ndarray):
     
     def __new__(cls, data: ArrayLike):
         if type(data)==str:
-            data = cv2.imread(data,
+            fn = data
+            data = cv2.imread(fn,
                               cv2.IMREAD_ANYDEPTH + cv2.IMREAD_GRAYSCALE)
-
+            if data is None:
+                raise FileNotFoundError(fn)
         obj = np.asarray(data).view(cls)
         if obj.dtype == np.uint8:
             scl = 255

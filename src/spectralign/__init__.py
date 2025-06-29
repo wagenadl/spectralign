@@ -50,5 +50,5 @@ from .image import Image
 from .affine import Affine
 from .swim import Matcher
 from .placement import Placement
-from .render import RenderRigid
-from .renderaffine import RenderAffine
+from .render import Renderer
+
