@@ -65,11 +65,11 @@ Spectralign may be obtained by
 ### Two horizontally adjacent tiles
 
 As a most basic example, consider a single slice scanned in two
-horizontally adjacent tiles, each of size *W \times H* pixels, and
+horizontally adjacent tiles, each of size *W* × *H* pixels, and
 with approximately 20% overlap between adjacent tiles. That means that
-we should expect an area around the point *p_0 = (0.9 W, 0.5 H)*
-in the first tile to correspond to a like area around point *p_0′
-= (0.1W, 0.5H)* in the second tile. We can inform spectralign about
+we should expect an area around the point ***p***₀ = (0.9 *W*, 0.5 *H*)
+in the first tile to correspond to a like area around point ***p***₀′
+= (0.1 *W*, 0.5 *H*) in the second tile. We can inform spectralign about
 this situation as follows:
 
 ```python
@@ -81,7 +81,7 @@ p0 = (0.9 * W, 0.5 * H)
 p0_ = (0.1 * W, 0.5 * H)
 ```
 
-(Python variable names may not contain primes (**′) so I use an
+(Python variable names may not contain primes (′) so I use an
 underscore instead.)
 
 Naturally, these points don′t correspond perfectly. In this particular
@@ -98,7 +98,7 @@ regions whos dimensions are an integer power of two. But you could
 have written `size=(0.2 * W, 0.8 * H)` and obtained largely identical
 results.)
 
-Now, ***p*** and ***p***′ are spectralign′s estimate of points that
+Now, ***p*** and ***p***′ are spectralign’s estimate of points that
 actually match.
 
 If we assume that the only transformation needed to align these images
@@ -110,7 +110,7 @@ placement.addmatch(1, 2, p, p_)
 pos = placement.rigid()
 ```
 
-where I chose arbitrary labels *t = 1* and *2* for the two
+where I chose arbitrary labels *t* = 1 and 2 for the two
 tiles. Creating a composite output image is then straightforward:
 
 ```python
@@ -138,11 +138,10 @@ afms = placement.affine()
 (If you specify `size` as a single integer, the result is a square
 area.)
 
-The result is a pair of [*affine transformations*]([Affine
-transformation -
-Wikipedia](https://en.wikipedia.org/wiki/Affine_transformation)) that
-map the two tiles onto model space. Rendering output is still just as
-easy:
+The result is a pair of 
+[*affine transformations*](https://en.wikipedia.org/wiki/Affine_transformation)
+that map the two tiles onto model space. Rendering output is still
+just as easy:
 
 ```python
 renderer = spectralign.Renderer(affine=afms, tilesize=(W, H))
@@ -189,7 +188,7 @@ for row in rows:
         p, p_ = matcher.refine(p0, p0_, size=(512, 1024), iters=3)
         placement.addmatch(t, t_, p, p_)
 
-# Vertically adjacent image pairs     
+# Vertically adjacent image pairs
 p0 = (0.5 * W, 0.9 * H)
 p0_ = (0.5 * W, 0.1 * H)
 for row in rows[:-1]:
