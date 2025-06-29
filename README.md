@@ -32,7 +32,7 @@ framework that proceeds according to three steps:
 - **Tile set**: All the tiles that make up the image data to be aligned.
 
 - **Point**: An $(x,y$) pixel position in a given tile.  Commonly, we
-  use variable names like $\bm p$ and $\bm p'$ to label points.
+  use variable names like $\boldsymbol p$ and $\boldsymbol p'$ to label points.
 
 - **Tile space**: Coordinates on a tile. Points live in tile space. 
 
@@ -45,7 +45,7 @@ framework that proceeds according to three steps:
   the global model space.
 
 With this terminology, we can say that the **Matching** step consists
-of identifying pairs of **points** $\bm p$ and $\bm p'$ that live in
+of identifying pairs of **points** $\boldsymbol p$ and $\boldsymbol p'$ that live in
 the **tile spaces** of **tiles** $t$ and $t'$ respectively that should
 map to the same **location** in **model space**. Meanwhile, the
 **Placement** step consists of finding **Transformations** that
@@ -67,8 +67,8 @@ Spectralign may be obtained by
 As a most basic example, consider a single slice scanned in two
 horizontally adjacent tiles, each of size $W \times H$ pixels, and
 with approximately 20% overlap between adjacent tiles. That means that
-we should expect an area around the point $\bm p_0 = (0.9 W, 0.5 H)$
-in the first tile to correspond to a like area around point $\bm p_0'
+we should expect an area around the point $\boldsymbol p_0 = (0.9 W, 0.5 H)$
+in the first tile to correspond to a like area around point $\boldsymbol p_0'
 = (0.1W, 0.5H)$ in the second tile. We can inform spectralign about
 this situation as follows:
 
@@ -98,7 +98,7 @@ regions whos dimensions are an integer power of two. But you could
 have written `size=(0.2 * W, 0.8 * H)` and obtained largely identical
 results.)
 
-Now, $\bm p$ and $\bm p'$ are spectralign's estimate of points that
+Now, $\boldsymbol p$ and $\boldsymbol p'$ are spectralign's estimate of points that
 actually match.
 
 If we assume that the only transformation needed to align these images
@@ -122,7 +122,7 @@ out = renderer.image
 
 The result is not bad, considering that these images were obtained
 with a handheld camera, but we can do better. Since we now know that
-$\bm p$ and $\bm p'$ are closely corresponding points, we can find a
+$\boldsymbol p$ and $\boldsymbol p'$ are closely corresponding points, we can find a
 whole grid of matching points, using smaller source rectangles to
 obtain more local results:
 
