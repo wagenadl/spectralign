@@ -38,6 +38,9 @@ class RenderAffine:
               If not given, the full extent covered by the source images
               is used. Clip may also be a single boolean True to
               automatically clip to the intersection of all images.
+        blend: The number of pixels over which to blend overlapping
+              images together.
+             
 
     Use the `render` method to render a source image into model space.
 
@@ -49,9 +52,9 @@ class RenderAffine:
     def __init__(self, afms: Dict[Tuple, Tuple],
                  size: Dict[Tuple, Tuple] or Tuple,
                  clip: ArrayLike or bool = False,
-                 border=10):
+                 blend=10):
         self.afms = afms
-        self.border = border
+        self.blend = blend
         if type(size) == dict:
             self.imgsizes = size
         else:
@@ -125,9 +128,10 @@ class RenderAffine:
         img1 = afm.apply(img, self.rect)
         sup1 = afm.apply(buildalph(), self.rect)
         mask = sup1 > self.support
-        b,a = butter(1, 1/self.border)
-        mask = filtfilt(b, a, mask, axis=0)
-        mask = filtfilt(b, a, mask, axis=1)
+        if self.blend > 1:
+            b,a = butter(1, 1/self.blend)
+            mask = filtfilt(b, a, mask, axis=0)
+            mask = filtfilt(b, a, mask, axis=1)
         mask[sup1 == 0] = 0
         mask[self.support == 0] = 1
         self.image = (1-mask)*self.image + mask * img1

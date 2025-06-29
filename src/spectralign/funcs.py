@@ -43,14 +43,13 @@ import cv2
 
 def si_unpackSize(siz):
     '''SI_UNPACKSIZE - Interprets size arguments
-    Sizes are NOT ANYMORE rounded up to next even number. 
     Size may be given as one or two numbers. Unpacks to tuple.'''
     if type(siz)==np.ndarray or type(siz)==list or type(siz)==tuple:
         w = siz[0]
         h = siz[-1]
     else:
         w = h = siz
-    return (w, h)
+    return (int(w), int(h))
 
 
 def reptoshape(mat, pattern):

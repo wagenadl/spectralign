@@ -44,8 +44,8 @@ class RenderRigid:
 
     def __init__(self, pos: Dict[Tuple, Tuple],
                  size: Dict[Tuple, Tuple] or Tuple,
-                 border=10):
-        self.border = border
+                 blend=10):
+        self.blend = blend
         if type(size) != dict:
             size = {k: size for k in pos}
         pmin = [np.inf, np.inf]
@@ -94,9 +94,10 @@ class RenderRigid:
         sup1[y0:y0+h, x0:x0+w] = buildalph()
         img1[y0:y0+h, x0:x0+w] = img
         mask = sup1 > self.support
-        b,a = butter(1, 1/self.border)
-        mask = filtfilt(b, a, mask, axis=0)
-        mask = filtfilt(b, a, mask, axis=1)
+        if self.blend > 1:
+            b,a = butter(1, 1/self.blend)
+            mask = filtfilt(b, a, mask, axis=0)
+            mask = filtfilt(b, a, mask, axis=1)
         mask[sup1 == 0] = 0
         mask[self.support == 0] = 1
         self.image = (1-mask)*self.image + mask * img1
