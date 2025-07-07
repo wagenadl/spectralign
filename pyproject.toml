@@ -7,9 +7,9 @@ name = "spectralign"
 authors = [
     {name = "Daniel Wagenaar", email = "daw@caltech.edu"},
 ]
-description = "Python implementation of SWIFT-IR"
+description = "Spectral methods for image alignment"
 readme = "README.md"
-version = "0.4.0"
+version = "0.4.1"
 license = "GPL-3.0-or-later"
 dependencies = [
     "numpy",

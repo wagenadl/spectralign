@@ -68,7 +68,7 @@ As a most basic example, consider a single slice scanned in two
 horizontally adjacent tiles, each of size *W* × *H* pixels, and
 with approximately 20% overlap between adjacent tiles. That means that
 we should expect an area around the point ***p***₀ = (0.9 *W*, 0.5 *H*)
-in the first tile to correspond to a like area around point ***p***₀′
+in the first tile to correspond to a like area around point ***p***′₀
 = (0.1 *W*, 0.5 *H*) in the second tile. We can inform spectralign about
 this situation as follows:
 
@@ -152,12 +152,12 @@ out = renderer.image
 
 ### A grid of tiles
 
-The images aligned above are actually part of a 2 × 3 (rows × columns)
-grid of images. For a slightly more involved example, we can align the
-whole tableau. First, we load the data. For convenient organization,
-we use the (row, column) tuple to index the tiles. (Spectralign will
-happily let you use anything that can be a key in a Python dict as a
-tile index.)
+The images aligned above are actually part of a grid of 2 rows × 3
+columns. For a slightly more involved example, we can align the whole
+tableau. First, we load the data. For convenient organization, we use
+the (row, column) tuple to index the tiles. (Spectralign will happily
+let you use anything that can be a key in a Python dict as a tile
+index.)
 
 ```python
 imgs = {}
