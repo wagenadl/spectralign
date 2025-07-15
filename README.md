@@ -282,27 +282,26 @@ API documentation for spectralign lives on
 ## Acknowledgments
 
 The algorithm at the core of the “Matching” step is a reimplementation
-of the “swim” program in the “SWiFT-IR” package by (Art
-Wetzel)[https://wp-dev.psc.edu/art-wetzel/] at the Pittsburgh
+of the “swim” program in the “SWiFT-IR” package by [Art
+Wetzel](https://wp-dev.psc.edu/art-wetzel/) at the Pittsburgh
 Supercomputer Center. This method was described in:
 
 > Wetzel AW, Bakal J, Dittrich M, Hildebrand DGC, Morgan HL, Lichtman
 > JW. 2016. Registering large volume serial-section electron
 > microscopy image sets for neural circuit reconstruction using fft
 > signal whitening. Proc. IEEE Applied Imagery Pattern Recognition
-> Workshop. (doi:
-> 10.1109/aipr.2016.8010595)[https://doi.org/10.1109/AIPR.2016.8010595].
+> Workshop. [doi: 10.1109/aipr.2016.8010595](https://doi.org/10.1109/AIPR.2016.8010595).
     
 That package also contained an antecedent of the `Placement.affine`
 method (“mir”), although the approach to handling more than two images
 in “SWiFT-IR” is very different from ours.
 
 The core logic of the `Placement.rigid` method derives from a
-conversation with (Stephan
-Saalfeld)[https://www.janelia.org/people/stephan-saalfeld] at
+conversation with [Stephan
+Saalfeld](https://www.janelia.org/people/stephan-saalfeld) at
 Janelia. This method was described in:
 
 > Ashaber M, Tomina Y, Kassraian P, Bushong EA, Kristan WB, Ellisman
 > MH, Wagenaar DA, 2021. Anatomy and activity patterns in a
 > multifunctional motor neuron and its surrounding circuits. Elife
-> 10, e61881. (doi: 10.7554/eLife.61881)[https://doi.org/10.7554/eLife.61881].
+> 10, e61881. [doi: 10.7554/eLife.61881](https://doi.org/10.7554/eLife.61881).
