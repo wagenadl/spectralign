@@ -84,19 +84,19 @@ class Image(np.ndarray):
 
     * from numpy arrays using
 
-          img = Image(array)
+            img = Image(array)
 
     * loaded from an image file using
 
-          img = Image.load(filename)
+            img = Image.load(filename)
 
     * pulled from a video file using
 
-          vidcap = cv2.VideoCapture(inputfilename)
-          ...
-          img = Image.readframe(vidcap)
+            vidcap = cv2.VideoCapture(inputfilename)
+            ...
+            img = Image.readframe(vidcap)
 
-      In this case, a RuntimeError is raised at end-of-file.
+        In this case, a RuntimeError is raised at end-of-file.
 
     Our native data format is np.float32. For convenience, np.uint8 or
     np.uint16 is also accepted. The intensity of such images is scaled
@@ -105,15 +105,7 @@ class Image(np.ndarray):
     We do not keep color information. If YxXxC images are provided, the
     color channel is averaged away with equal weights for each channel.
 
-    An Image is just a numpy array with the following additional methods:
-
-        stretch - Strech contrast of an image in place
-        stretched - Contrast-stretched copy of an image
-        scaled - Geometrically scale an image down by integer factor
-        apodize - Multiply a windowing function into an image in place
-        apodized - Apodized copy of an image
-        ascii - ASCII-art representation of an image
-        save - Save an image to a file
+    An Image is just a numpy array with some additional methods:
     """
 
     apo = None
@@ -213,14 +205,18 @@ class Image(np.ndarray):
         
     
     def apodize(self, gray: Optional[float] = None, force: bool = False) -> "Image":
-        '''APODIZE - Multiply a windowing function into an image in place
+        '''Multiply a windowing function into an image in place
+
+        Arguments:
+            gray: optional value to fade toward
+            force: force an already apodized image to be apodized again.
         
-        img.APODIZE() multiplies the outer 1/4 of the image with a cosine 
-        fadeout to gray (defined as the mean of the image, unless specifically
-        given as optional argument).
+        `img.apodize()` multiplies the outer 1/4 of the image with a
+        cosine fadeout to gray (defined as the mean of the image,
+        unless specifically given as optional argument).
 
         The call has no effect if the image has already been apodized,
-        unless FORCE is given as True.
+        unless `force` is given as True.
 
         This function is not threadsafe, as it stores the most recent
         apodization kernel for reuse.
@@ -233,10 +229,10 @@ class Image(np.ndarray):
         return self
 
     def apodized(self, gray: Optional[float] = None, force: bool = False) -> "Image":
-        """APODIZED - Apodized copy of an image
+        """Apodized copy of an image
         
-        im1 = img.APODIZED() copies the image and then applies the
-        APODIZE function.  If the image is already apodized, the
+        `im1 = img.apodized()` copies the image and then applies the
+        `apodize` function.  If the image is already apodized, the
         original image is returned without copying.
 
         """
@@ -248,13 +244,25 @@ class Image(np.ndarray):
 
     
     def ascii(self, height: int = 22) -> List[str]:
-        """ASCII - ASCII-art copy of an image
-        img.ASCII() returns a copy of the image converted to ascii art at low
-        resolution. Optional parameter HEIGHT specifies the desired height
+        """ASCII-art copy of an image
+
+        Arguments:
+            height: number of lines in returned image
+
+        Returns:
+            pic: a list of strings representing the image as ASCII art
+        
+        `img.ascii()` returns a copy of the image converted to ascii
+        art at low resolution.
+
+        Optional parameter `height` specifies the desired height
         of the output. Intended to get a quick overview for use in
-        terminals.
+        terminals that do not support unicode. Otherwise, `braille`
+        is better.
+
         """
-        chrs = """·-+⊞▤▦▩■"""
+        #chrs = """·-+⊞▤▦▩■"""
+        chrs = """ ·-+$#"""
         M = len(chrs)
         Y, X = self.shape
         scl = int(np.round(Y/height+.99))
@@ -270,6 +278,22 @@ class Image(np.ndarray):
         return lines
 
     def braille(self, height: int = 88) -> List[str]:
+        """Braille-art copy of an image
+
+        Arguments:
+            height: number of lines in returned image
+
+        Returns:
+            pic: a list of strings representing the image as Braille art
+        
+        `img.braille()` returns a copy of the image converted to Braille
+        art at low resolution.
+
+        Optional parameter `height` specifies the desired height
+        of the output. Intended to get a quick overview for use in
+        terminals that support unicode. See also `ascii`.
+
+        """
         Y, X = self.shape
         scl = int(np.round(Y/height+.99))
         w1 = X // scl
@@ -308,10 +332,18 @@ class Image(np.ndarray):
         return self.__repr__()
     
     def save(self, path: str, qual: int = None) -> None:
-        '''SAVE - Save an image to a file
-        img.SAVE(path) saves the image IMG to the file named PATH.
-        Optional argument QUAL specifies jpeg quality as a number between
-        0 and 100, and must only be given if PATH ends in ".jpg".'''
+        '''Save an image to a file
+
+        Arguments:
+            path: filename to save into
+            qual: optional quality for jpeg files
+        
+        `img.save(path)` saves the image `img` to the file named
+        `path`.  Optional argument `qual` specifies jpeg quality as a
+        number between 0 and 100, and must only be given if `path`
+        ends in ".jpg".
+
+        '''
         img = (self.view(np.ndarray) * 255.99).astype(np.uint8)
         funcs.saveImage(img, path, qual)
 
@@ -320,63 +352,110 @@ class Image(np.ndarray):
                        xy: ArrayLike = None,
                        siz: int = 512,
                        border: float = None) -> "Image":
-        '''STRAIGHTWINDOW - Extract a window from an image
-        win = img.STRAIGHTWINDOW(xy, siz) extracts a window of
-        size SIZ, centered on XY, from the given image. XY do not have to
-        be integer-valued.
-        SIZ may be a scalar or a pair of numbers (width, height).
-        SIZ defaults to 512.
-        If XY is not given, the window is taken from the center of the image.
-        It is OK if the window does not fit fully inside of the image. In
-        that case, undefined pixels are given the value of the optional
-        BORDER argument, or of the average of the image if not specified.'''    
+        """Extract a window from an image
+
+        Arguments:
+            xy: center location of window as an (x, y)-pair
+            siz: size of the window to extract
+            border: value for pixels outside of the source image
+
+        Returns:
+            the extracted sub image
+
+        `win = img.straightwindow(xy, siz)` extracts a window of size
+        `siz`, centered on `xy`, from the given image. `xy` do not
+        have to be integer-valued.
+
+        `siz` may be a scalar or a pair of numbers (width,
+        height). `siz` defaults to 512.
+
+        If `xy` is not given, the window is taken from the center of
+        the image.  It is OK if the window does not fit fully inside
+        of the image. In that case, undefined pixels are given the
+        value of the optional `border` argument, or of the average of
+        the image if not specified.
+
+        """
         return Image(funcs.extractStraightWindow(self, xy, siz, border))
 
     
     def roi(self, rect: ArrayLike) -> "Image":
-        '''ROI - Extract rectangular window from an image
-        win = img.ROI((x0,y0,w,h)) extracts a rectangular window
+        """Extract rectangular window from an image
+        `win = img.roi((x0, y0, w, h))` extracts a rectangular window
         from an image.
-        X0, Y0, W, and H must be integers. ROIs must fit inside the image.
-        See also EXTRACTSTRAIGHTWINDOW.'''
+
+        `x0`, `y0`, `w`, and `h` must be integers. ROIs must fit
+        inside the image.
+        
+        See also `extractstraightwindow`.
+
+        """
         return Image(funcs.roi(self, rect))
     
         
     def transformedwindow(self, xy: ArrayLike = None,
                           tfm: ArrayLike = None,
                           siz: int = 512) -> "Image":
-        '''TRANSFORMEDWINDOW - Extract a window with transform
-        win = img.TRANSFORMEDWINDOW(xy, tfm, siz) extracts a window of
+        """Extract a window with transformation
+
+        Arguments:
+            xy: center location of window as an (x, y)-pair
+            tfm: transformation to apply
+            siz: size of the window to extract
+            border: value for pixels outside of the source image
+
+        Returns:
+            the extracted sub image
+        
+        `win = img.transformedwindow(xy, tfm, siz)` extracts a window of
         size SIZ, centered on XY, from the given image.
-        TFM must be a 2x2 transformation matrix. It is internally modified with
+        
+        `tfm` must be a 2x2 transformation matrix. It is internally modified with
         a translation T such that the center point XY is not moved by the 
         combination of translation and transformation.
-        SIZ may be a scalar or a pair of numbers (width, height). 
-        SIZ defaults to 512.
-        If TFM is not given, an identity matrix is used.
-        If XY is not given, the window is taken from the center of the image.
-        To transform an entire image, AFFINE.APPLY may be easier to use.'''
+
+        `siz` may be a scalar or a pair of numbers (width, height). 
+        `siz` defaults to 512.
+        
+        If `tfm` is not given, an identity matrix is used.
+        
+        If `xy` is not given, the window is taken from the center of the image.
+        
+        To transform an entire image, `Affine.apply` may be easier to use."""
         return Image(funcs.extractTransformedWindow(self, xy, tfm, siz))
 
     def rmsdelta(self, img2: "Image", margin: float = 0.05) -> float:
-        """RMSDELTA - RMS difference between images
+        """RMS difference between images
 
-        rms = img1.RMSDELTA(img2) calculates the RMS difference
+        Arguments:
+            img2: the image to compare to
+            margin: fraction of image near borders to ignore
+
+        Returns:
+            RMS difference across all compared pixels
+
+        `rms = img1.rmsdelta(img2)` calculates the RMS difference
         between a pair of images, ignoring edge pixels.
         
         By default, each of the four edges is 5% of the corresponding
-        image dimension. The MARGIN parameter overrides the default.
+        image dimension. The `margin` parameter overrides the default.
         """
         return np.mean(self.delta(img2, margin)**2)**0.5
     
     def delta(self, img2: "Image", margin: float = 0.05) -> "Image":
-        """DELTA - difference between images
+        """Difference between images
 
-        img = img1.RMSDELTA(img2) calculates the difference images
-        between a pair of images, ignoring edge pixels.
-        
-        By default, each of the four edges is 5% of the corresponding
-        image dimension. The MARGIN parameter overrides the default.
+        Arguments:
+            img2: the image to compare to
+            margin: fraction of image near borders to ignore
+
+        Returns:
+            The difference image
+
+        Note that the result is an image, not an average across
+        compared pixels. To get that average, use `img1.delta(img2).mean()` 
+
+        See also `rmsdelta`.
         """
         Y, X = self.shape
         DY = int(margin*Y)

@@ -71,20 +71,15 @@ class Renderer:
     """Rendering of tiles with rigid of affine placement
 
     Arguments:
-
-        rigid: dictionary of tile positions (from Placement.rigid())
-
-        affine: dictionary of affine transforms (from Placement.affine())
-
+        rigid: dictionary of tile positions (from `Placement.rigid()`)
+        affine: dictionary of affine transforms (from `Placement.affine()`)
         tilesize: either a (W, H) tuple if all tiles have same
               dimensions, or a dictionary mapping tile IDs to (W, H)
               tuples to specify dimensions on a per-tile basis
-
         clip: An optional [x0, y0, w, h] bounding box in model space.
               If not given, the full extent covered by the source images
               is used. Clip may also be a single boolean True to
               automatically clip to the intersection of all images.
-
         blend: radius of blending between overlapping tiles. Set to
               zero for hard edge.
 
@@ -94,7 +89,7 @@ class Renderer:
 
     Use the `clear` method between z-levels.
 
-    Use the `image` or `blended` properties to retrieve results.
+    Use the `image` property to retrieve results.
 
     """
 
@@ -111,6 +106,10 @@ class Renderer:
         self.pos = rigid
         self.afms = affine
         self.blend = blend
+        self.image: Optional[Image] = None
+        """The blended image
+
+        Only valid after calling `render` for all relevant tiles."""
         if type(tilesize) == dict:
             self.imgsizes = tilesize
         else:
@@ -178,9 +177,13 @@ class Renderer:
         """Render a tile into model space
 
         Arguments:
+           tile: ID of the tile
+           img: Image for the tile
 
-           tile - ID of the tile
-           img - Image for the tile
+        The image is rendered with either pure translation or an
+        affine transformation, depending on how the `Renderer` was
+        constructed.
+
         """
         h, w = img.shape
         def buildalph():

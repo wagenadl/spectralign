@@ -48,16 +48,17 @@ class Placement:
                  p1: Tuple, p2: Tuple, weight : float = 1) -> None:
         """Add a pair of matching points that connect two tiles
 
-        Matching points are commonly obtained using the `refine` function.
-
-        Arguments
-
-            tile1, tile2 represent the tiles to connect
+        Arguments:
+            tile1: tile ID in which the first point lives
+            tile2: tile ID in which the second point lives
         
-            p1, p2 represent points within those tiles that
-                   should occupy the same location in model space
-        
-            weight is an optional weighting factor for this connection
+            p1: a point in tile1 that should occupy the same location in model space as...
+            p2: ... this point in tile2
+            weight: an optional weighting factor for this connection
+
+        Matching points are commonly obtained using the `refine`
+        function of `Matcher.
+
         """
         self.matches.append(Match(tile1, tile2, p1, p2, weight))
 
@@ -78,6 +79,12 @@ class Placement:
     def rigid(self, fix=None) -> Dict[Tuple, Tuple]:
         """Rigid solution with only translation
 
+        Arguments:
+            fix: optional tile ID that will have unity transformation
+
+        Returns:
+            pos: a dict mapping tile IDs to (x,y) positions for the tile
+        
         This places all tiles in model space and returns a dictionary
         that maps tile IDs to (x, y) positions for the tile.
 
@@ -140,6 +147,12 @@ class Placement:
     def affine(self, fix=None) -> Dict[Tuple, Affine]:
         """Rigid solution with affine transformations
 
+        Arguments:
+            fix: optional tile ID that will have unity transformation
+
+        Returns:
+            afms: a dict mapping tile IDs to `Affine` transformations
+        
         This places all tiles in model space and returns a dictionary
         that maps tile IDs to affine transformations for the tile.
 

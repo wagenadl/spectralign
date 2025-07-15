@@ -15,7 +15,7 @@ plugins:
             show_signature_annotations: false
             show_signature: true
             show_source: false
-            show_category_heading: true
+            show_category_heading: false
             merge_init_into_class: true
             summary: true
             docstring_section_style: table
@@ -34,5 +34,7 @@ nav:
   - Home: index.md
   - API documentation:
     - matcher.md
-
-      
+    - placement.md
+    - renderer.md
+    - image.md
+    - affine.md

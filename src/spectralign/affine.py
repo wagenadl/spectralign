@@ -25,7 +25,7 @@ type ArrayLike = numpy.typing.ArrayLike
 import scipy.optimize
 
 class Affine(np.ndarray):
-    """AFFINE - Affine transformations
+    """Affine transformation
 
     The constructor builds a unity transformation if given no arguments,
     or uses the optional array for source data
@@ -56,60 +56,90 @@ class Affine(np.ndarray):
         
     
     def apply(self, img: Image, rect: Optional[ArrayLike] = None) -> Image:
-        """APPLY - Apply an affine transformation to an image
+        """Apply an affine transformation to an image
 
-        res = afm.APPLY(img) returns an image the same size of IMG
+        Arguments:
+            img: an image to transform
+            rect: optional rectangle of model space
+
+        Returns:
+            the transformed image
+
+        `res = afm.apply(img)` returns an image the same size of `img`
         looking up pixels in the original using affine transformation.
-        res = afm.APPLY(img, rect), where rect is an (x0,y0,w,h)-tuple
+        
+        `res = afm.apply(img, rect)`, where rect is an (x0,y0,w,h)-tuple
         returns the given rectangle of model space.
         
-        Note that AFM must map from image space to model space.
+        Note that `afm` must map from image space to model space, not
+        the other way around.
+
         """
         return Image(funcs.affineImage(self.inverse(), img, rect))
 
     
     def __imatmul__(self, afm: "Affine") -> "Affine":
-        """Operator @= - Compose two affine transforms in place
+        """Compose two affine transformations in place
 
-        AFM1 @= AFM2 incorporates AFM2 into AFM1, such that AFM1 becomes
-        the affine transform AFM1 ∘ AFM2 that applies AFM1 after AFM2.
+        `afm1 @= afm2` incorporates `afm2` into `afm1`, such that
+        `afm1` becomes the affine transformation *afm*₁ ∘ *afm*₂ that
+        applies *afm*₁ after *afm*₂.
+
         """
         self[:] = funcs.composeAffine(self, afm)[:]
         return self
 
     def __matmul__(self, afm: "Affine") -> "Affine":
-        """Operator @ - Compose two affine transforms
+        """Compose two affine transformations
 
-        (AFM1 @ AFM2) returns the affine transform AFM1 ∘ AFM2
-        that applies AFM1 after AFM2.
+        `(afm1 @ afm2)` returns the affine transformation *afm*₁ ∘ *afm*₂
+        that applies *afm*₁ after *afm*₂.
         """
         return Affine(funcs.composeAffine(self, afm))
 
     def __mul__(self, xy: ArrayLike) -> np.ndarray:
-        """Operator * - Apply affine transformation to a point or several points
+        """Apply affine transformation to a point or several points
 
-        AFM * PT, where PT is a 2-vector, returns the point after applying the
-        affine transform.
-        AFM * PTS, where PTS is a 2xN array, applies the affine transform to
-        multiple points at once.
+        `afm * pt`, where `pt` is a 2-vector, returns the point after applying the
+        affine transformation.
+        
+        `afm * pts`, where `pts` is a 2×*N* array, applies the affine
+        transformation to multiple points at once.
+
         """
         return funcs.applyAffine(self, xy)
 
     
     def shift(self, dxy: ArrayLike) -> "Affine":
-        '''SHIFT - Add a translation to an affine transform in place
+        '''Add a translation to an affine transformation in place
 
-        afm.SHIFT(dx) composes the transformation x -> x + DX after
-        the affine transformation AFM.'''
+        Arguments:
+            dxy: (x,y)-pair specifying the shift to be applied
+
+        Returns:
+            self
+
+        `afm.shift(dx)` composes the transformation *x* → *x* + *dx* after
+        the affine transformation *afm*.'''
         self[0,2] += dxy[0]
         self[1,2] += dxy[1]
         return self
 
     def shifted(self, dxy: ArrayLike) -> "Affine":
-        '''SHIFTED - Add a translation to an affine transform
+        """Add a translation to an affine transformation
 
-        afm.SHIFTED(dx) composes the transformation x -> x + DX after
-        the affine transformation AFM and returns the result'''
+        Arguments:
+            dxy: (x,y)-pair specifying the shift to be applied
+
+        Returns:
+            the new affine transformation
+
+
+        `afm.shifted(dx)` composes the transformation *x* → *x* + *dx*
+        after the affine transformation *afm* and returns the result.
+
+        """
+        
         out = self.copy()
         return out.shift(dxy)
     
@@ -143,37 +173,59 @@ class Affine(np.ndarray):
 
 
     def invert(self) -> "Affine":
-        """INVERT - Invert affine transform in place
+        """Invert affine transformation in place
 
-        afm.INVERT() inverts the transform.
+        `afm.invert()` inverts the transformation.
         """
         self[:] = funcs.invertAffine(self)[:]
         return self
 
     def inverse(self) -> "Affine":
-        """INVERSE - Inverse of an affine transform
+        """Inverse of an affine transformation
 
-        afm.INVERSE() returns an affine transform that is the inverse of
-        the given transform.
+        Returns:
+            the resulting transformation
+
+        afm.INVERSE() returns an affine transformation that is the inverse of
+        the given transformation.
         """
         out = Affine(self.copy())
         out.invert()
         return out
 
     def magnification(self) -> float:
-        """MAGNIFICATION - Approximate linear scaling factor
+        """Approximate linear scaling factor
 
-        The value is exact if the transform is pure scaling combined
-        with rotation and translation. 
+        Returns:
+            the scaling factor
+
+        We calculate this as the square root of the determinant of the
+        linear part of the transformation.
+
+        The value is exact if the transformation is pure scaling combined
+        with rotation and translation.
+
         """
         return np.sqrt(self[0,0]*self[1,1]
                        - self[0,1]*self[1,0])
 
     def angle(self, refine: bool = False) -> float:
-        """ANGLE - Approximate rotation angle
+        """Approximate rotation angle
 
-        The value is exact if the transform is pure scaling combined
-        with rotation and translation. 
+        Arguments:
+            refine: if true, use scipy to optimize
+
+        Returns:
+            angle in radians
+
+        We calculate the arctangent of the ratio between off-diagonal
+        and diagonal elements of the linear part of the
+        transformation. If `refine` is true, we then further optimize
+        using scipy.
+
+        The value is exact if the transformation is pure scaling combined
+        with rotation and translation.
+
         """
         def err(p):
             phi = p[0]
@@ -191,20 +243,26 @@ class Affine(np.ndarray):
             return phi0
 
     def translation(self) -> np.ndarray:
-        """TRANSLATION - Translational part of the transform
+        """Translational part of the transformation
+
+        Returns:
+            the shift as a (dx, dy)-pair.
 
         The value is always exact.
         """
         return self[:,2].view(type=np.ndarray)
 
     def centerofrotation(self) -> np.ndarray:
-        """CENTEROFROTATION - Approximate center of rotation
+        """Approximate center of rotation and scaling
 
-        Any affine transformation T: X -> A X + B
-        can be written as T: X -> A (X - C) + C.
-        This function calculates that C.
+        Returns:
+            center of rotation and scaling
 
-        Note that the calculation is numerically unstable near A = unity.
+        Any affine transformation *T*: *x* → *A* *x* + *b*
+        can be written as *T*: *x* → *A* (*x* − *c*) + *c*.
+        This function calculates that *c*.
+
+        Note that the calculation is numerically unstable near *A* = 𝟙.
         """
 
         """Let's do the linear algebra:
@@ -216,12 +274,31 @@ class Affine(np.ndarray):
         return np.linalg.solve(self[:,:2] - np.eye(2), -self[:,2]).view(type=np.ndarray)
 
     @staticmethod
-    def translator(dxy: ArrayLike):
+    def translator(dxy: ArrayLike) -> "Affine":
+        """An affine transformation that represents a translation
+
+        Arguments:
+            dxy: a (dx, dy) pair
+
+        Returns:
+            the constructed affine transformation
+        """
         dx, dy = dxy
         return Affine([[1., 0, dx], [0, 1., dy]])
     
     @staticmethod
     def rotator(phi: float, xy0: ArrayLike = [0,0]) -> "Affine":
+        """An affine transformation that represents a rotation
+
+        Arguments:
+            phi: the rotation in radians
+            xy0: the point around which to rotate
+
+        Returns:
+            the constructed affine transformation
+
+        If `xy0` is not given, the rotation is around the origin.
+        """
         c = np.cos(phi)
         s = np.sin(phi)
         x0, y0 = xy0
@@ -231,6 +308,20 @@ class Affine(np.ndarray):
 
     @staticmethod
     def scaler(s: float, xy0: ArrayLike = [0,0]) -> "Affine":
+        """An affine transformation that represents a linear scaling
+
+        Arguments:
+            s: the scale factor
+            xy0: the point around which to scale
+
+        Returns:
+            the constructed affine transformation
+
+        If `xy0` is not given, the scaling is around the origin.
+
+        The scaling is always isotropic, that is, we do not support
+        different scale factors for x and y.
+        """
         x0, y0 = xy0
         return Affine([[s, 0., x0*(1-s)], [0., s, y0*(1-s)]])
     

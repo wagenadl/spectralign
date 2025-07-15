@@ -243,8 +243,6 @@ class RefinementStats:
 
 class Matcher:
     """Tool to find matching points between a pair of images
-
-    The attributes are only valid following a call to the `refine` method.
     """
     def __init__(self, img1: Image, img2: Image):
         """
