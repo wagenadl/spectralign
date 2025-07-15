@@ -3,7 +3,7 @@ h2.doc-heading {
     padding:  5px 0 5px 5px;
     background-color: #ffdd66;
 }
-h2 .highlight {
+h2.doc-heading .highlight, h2.doc-heading code {
     background-color: inherit;
     font-size: 110%;
 }
@@ -59,4 +59,16 @@ h4 .highlight span.n {
 .doc-contents p code {
     color: black;
     background-color: #ffffcc;
+}
+
+#spectralign\.swim\.RefinementStats + div div.doc-children {
+    display: none;
+}
+ 
+h4 .highlight span.n:first-of-type {
+    font-style: normal;
+}
+
+h4 .highlight span.n {
+    font-style: italic;
 }

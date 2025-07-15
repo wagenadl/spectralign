@@ -180,6 +180,67 @@ def refine(img1: Image, img2: Image, p1: ArrayLike, p2: ArrayLike,
         return p1, p2, swm
 
 
+
+class RefinementStats:
+    """The statistics returned from a `refine` call
+    
+    In general, a large `shift` (compared to the size of the window) is
+    indicative of lack of convergence.
+
+    A low `snr` value (relative to results from comparable images) is
+    also indicative of a poor match.
+
+    Uncommonly high `peakwidth` is also a bad sign, but a respectable
+    peakwidth on its own should not be taken as proof that the match
+    is OK.
+
+    """
+    
+    def __init__(self):
+        self.shifts: List[ArrayLike] = []
+        """(x, y)-pairs of shifts in each iteration"""
+        self.peakwidths: List[ArrayLike] = []
+        """(sx, sy)-pairs of the size of the spectral peaks found in each iteration"""
+        self.snrs: List[float] = []
+        """Signal-to-noise ratios found in each iteration"""
+        
+    @property
+    def niters(self) -> int:
+        """The number of iterations performed"""
+        return len(self.shifts)
+
+    @property
+    def shift(self) -> ArrayLike:
+        """(x, y)-pair of shift found in final iteration"""
+        return self.shifts[-1]
+
+    @property
+    def peakwidth(self) -> ArrayLike:
+        """(sx, sy)-pair of the size of the spectral peaks found in final iteration"""
+        return self.peakwidths[-1]
+
+    @property
+    def snr(self) -> float:
+        """Signal-to-noise ratio found in final iteration"""
+        return self.snrs[-1]
+
+    @property
+    def dists(self) -> List[float]:
+        """Euclidean lengths of shifts found in each iteration"""
+        return [np.sum(s**2)**.5 for s in self.shifts]
+
+    @property
+    def dist(self) -> float:
+        """Euclidean length of shift found in final iteration"""
+        return np.sum(self.shifts[-1]**2)**.5
+
+    @property
+    def totaldist(self) -> float:
+        """Euclidean length of total shift across all iterations"""
+        return np.sum(np.sum(self.shifts, 0)**2)**.5
+        
+        
+
 class Matcher:
     """Tool to find matching points between a pair of images
 
@@ -195,13 +256,6 @@ class Matcher:
         self.img2 = img2
         self.wht: Optional[float] = None
         self.rad: Optional[int] = None
-        self.shifts: List[ArrayLike] = []
-        """(x, y)-pairs of shifts in each iteration"""
-        self.peakwidths: List[ArrayLike] = []
-        """(sx, sy)-pairs of the size of the spectral peaks
-                   found in each iteration"""
-        self.snrs: List[float] = []
-        """Signal-to-noise ratios found in each iteration"""
         self.setpeakradius()
         self.setprewhiten()
 
@@ -219,7 +273,7 @@ class Matcher:
         """Set the pre-whitening argument parameter
 
         Arguments:
-            wht: new pre-whitening value (usually between -1 and 0)
+            wht: new pre-whitening value (usually between −1 and 0)
 
         It is rarely necessary to change this from its default value.
         """
@@ -230,12 +284,12 @@ class Matcher:
                p2: ArrayLike,
                size: ArrayLike,
                iters: int = 1,
-               tolerance: float = 0) -> Tuple[ArrayLike, ArrayLike]:
+               tolerance: float = 0) -> Tuple[ArrayLike, ArrayLike, RefinementStats]:
         """Iteratively refine a pair of matching points
 
     Arguments:    
         p1: point in img1 that putatively matches...
-        p2: ... point in img2
+        p2: ... this point in img2
         size: size of window to grab around the points
         iters: number of iterations to perform
         tolerance: if positive, stop early if shift less than this
@@ -243,6 +297,7 @@ class Matcher:
     Returns:
         p1: updated point in first image
         p2: updated point in second image
+        stats: statistics about refinement
 
     The returned `p1` and `p2` are better estimates of the matching
     points in the two images.
@@ -254,36 +309,16 @@ class Matcher:
     Euclidean length of the refinement is less than `tolerance`, the
     process is ended early.
 
-    After `refine` returns, additional information may be retrieved
-    from the properties set on the Matcher.
+    The returned `stats` may be used as an indicator of the quality of
+    the results. See below.
 
         """      
         p1, p2, swms = refine(self.img1, self.img2, p1, p2, size,
                               iters=iters, tol=tolerance,
                               wht=self.wht, rad=self.rad, every=True)
-        self.shifts = [swm.dxy for swm in swms]
-        self.peakwidths = [swm.sxy for swm in swms]
-        self.snrs = [swm.snr for swm in swms]
-        return p1, p2
+        stats = RefinementStats()
+        stats.shifts = [swm.dxy for swm in swms]
+        stats.peakwidths = [swm.sxy for swm in swms]
+        stats.snrs = [swm.snr for swm in swms]
+        return p1, p2, stats
 
-    @property
-    def niters(self) -> int:
-        """The number of iterations performed"""
-        return len(self.shifts)
-
-    @property
-    def shift(self) -> ArrayLike:
-        """(x, y)-pair of shift found in final iteration"""
-        return self.shifts[-1]
-
-    @property
-    def peakwidth(self) -> ArrayLike:
-        """(sx, sy)-pair of the size of the spectral peaks
-                   found in final iteration"""
-        return self.peakwidths[-1]
-
-    @property
-    def snr(self) -> float:
-        """Signal-to-noise ratio found in final iteration"""
-        return self.snrs[-1]
-    
