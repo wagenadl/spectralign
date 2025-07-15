@@ -8,6 +8,7 @@ build:
       pre_install:
         - pip install mkdocs-material
         - pip install mkdocstrings-python
+        - pip install markdown-include
 
 mkdocs:
   configuration: mkdocs.yml
