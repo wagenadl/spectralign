@@ -292,7 +292,7 @@ class Matcher:
         p2: ... this point in img2
         size: size of window to grab around the points
         iters: number of iterations to perform
-        tolerance: if positive, stop early if shift less than this
+        tolerance: if positive, stop early if absolute shift less than this
 
     Returns:
         p1: updated point in first image
@@ -302,8 +302,6 @@ class Matcher:
     The returned `p1` and `p2` are better estimates of the matching
     points in the two images.
 
-    The `stats` are only returned if enabled at construction time.
-
     If `size` is a single number, a square window is used. Otherwise,
     `size` must comprise a (width, height)-pair.
 
@@ -312,7 +310,8 @@ class Matcher:
     process is ended early.
 
     The returned `stats` may be used as an indicator of the quality of
-    the results. See below.
+    the results. See `RefinementStats`, below. Stats are only
+    returned if enabled at construction time.
 
         """      
         p1, p2, swms = refine(self.img1, self.img2, p1, p2, size,
