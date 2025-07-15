@@ -244,16 +244,18 @@ class RefinementStats:
 class Matcher:
     """Tool to find matching points between a pair of images
     """
-    def __init__(self, img1: Image, img2: Image):
+    def __init__(self, img1: Image, img2: Image, stats: bool = False):
         """
         Arguments:
             img1: The first image to study
             img2: The other image to study
+            stats: Whether `refine` should return statistics
         """
         self.img1 = img1
         self.img2 = img2
         self.wht: Optional[float] = None
         self.rad: Optional[int] = None
+        self.stats = stats
         self.setpeakradius()
         self.setprewhiten()
 
@@ -295,10 +297,12 @@ class Matcher:
     Returns:
         p1: updated point in first image
         p2: updated point in second image
-        stats: statistics about refinement
+        stats: optional statistics about refinement
 
     The returned `p1` and `p2` are better estimates of the matching
     points in the two images.
+
+    The `stats` are only returned if enabled at construction time.
 
     If `size` is a single number, a square window is used. Otherwise,
     `size` must comprise a (width, height)-pair.
@@ -314,9 +318,11 @@ class Matcher:
         p1, p2, swms = refine(self.img1, self.img2, p1, p2, size,
                               iters=iters, tol=tolerance,
                               wht=self.wht, rad=self.rad, every=True)
-        stats = RefinementStats()
-        stats.shifts = [swm.dxy for swm in swms]
-        stats.peakwidths = [swm.sxy for swm in swms]
-        stats.snrs = [swm.snr for swm in swms]
-        return p1, p2, stats
-
+        if self.stats:
+            stats = RefinementStats()
+            stats.shifts = [swm.dxy for swm in swms]
+            stats.peakwidths = [swm.sxy for swm in swms]
+            stats.snrs = [swm.snr for swm in swms]
+            return p1, p2, stats
+        else:
+            return p1, p2
