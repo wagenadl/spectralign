@@ -1,0 +1,62 @@
+h2.doc-heading {
+    margin-top: 20px;
+    padding:  5px 0 5px 5px;
+    background-color: #ffdd66;
+}
+h2 .highlight {
+    background-color: inherit;
+    font-size: 110%;
+}
+
+h4.doc-heading {
+    margin-top: 20px;
+    padding:  5px 0 5px 5px;
+    background-color: #ffffcc;
+    border-style: none none none solid;
+    border-width: 8px;
+    border-color: #ffdd66;
+}
+h4 .highlight {
+    background-color: inherit;
+    font-size: 110%;
+}
+
+.doc-children h3 {
+    font-weight: bold;
+    font-size: 150%;
+}
+
+h4 .highlight span.n {
+    color: black;
+}
+
+.doc-section-item code {
+    color: black;
+    background-color: inherit;
+}
+
+.doc-section-item td:first-of-type code {
+    font-style: italic;
+}
+
+.doc-section-item code a {
+    background-color: inherit;
+    color: #0044ff;
+    font-style: normal;
+}
+
+
+.doc-section-item code span {
+    color: #555555;
+    background-color: inherit;
+    font-style: normal;
+}
+
+.hide {
+    display: none
+}
+
+.doc-contents p code {
+    color: black;
+    background-color: #ffffcc;
+}

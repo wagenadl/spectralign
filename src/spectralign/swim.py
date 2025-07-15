@@ -26,27 +26,27 @@ type ArrayLike = numpy.typing.ArrayLike
 
 
 class Swim:
+    """SWIM - Calculator of alignment between two image tiles
+
+    After construction, use the ALIGN method to perform the
+    alignment.
+
+    Optional argument WHT specifies whitening exponent.
+
+    Optional argument RAD specifies the radius for estimating the peak.
+
+    For convenience, ALIGN returns self, so the idiom
+
+        dx, dy = Swim().align(img1, img2).shift()
+
+    is a convenient way to retrieve (just) the calculated displacement.
+    If you also need, e.g., the signal to noise ratio, do this instead:
+
+        swm = Swim().align(img1, img2)
+        dx, dy = swm.shift()
+        snr = swm.snr()
+    """
     def __init__(self, wht: float = -0.65, rad: int = 5):
-        """SWIM - Calculator of alignment between two image tiles
-
-        After construction, use the ALIGN method to perform the
-        alignment.
-
-        Optional argument WHT specifies whitening exponent.
-
-        Optional argument RAD specifies the radius for estimating the peak.
-
-        For convenience, ALIGN returns self, so the idiom
-
-            dx, dy = Swim().align(img1, img2).shift()
-
-        is a convenient way to retrieve (just) the calculated displacement.
-        If you also need, e.g., the signal to noise ratio, do this instead:
-
-            swm = Swim().align(img1, img2)
-            dx, dy = swm.shift()
-            snr = swm.snr()
-        """
         self.wht = float(wht)
         self.rad = int(rad)
         self.dxy = None
@@ -183,69 +183,81 @@ def refine(img1: Image, img2: Image, p1: ArrayLike, p2: ArrayLike,
 class Matcher:
     """Tool to find matching points between a pair of images
 
-    Arguments:
-
-        img1, img2: The images to study
-
-    Use the `refine` method to identify matching points in the images.
+    The attributes are only valid following a call to the `refine` method.
     """
     def __init__(self, img1: Image, img2: Image):
+        """
+        Arguments:
+            img1: The first image to study
+            img2: The other image to study
+        """
         self.img1 = img1
         self.img2 = img2
-        self.wht = None
-        self.rad = None
-        self.shifts = []
-        self.peakwidths = []
-        self.snrs = []
+        self.wht: Optional[float] = None
+        self.rad: Optional[int] = None
+        self.shifts: List[ArrayLike] = []
+        """(x, y)-pairs of shifts in each iteration"""
+        self.peakwidths: List[ArrayLike] = []
+        """(sx, sy)-pairs of the size of the spectral peaks
+                   found in each iteration"""
+        self.snrs: List[float] = []
+        """Signal-to-noise ratios found in each iteration"""
         self.setpeakradius()
         self.setprewhiten()
 
-    def setpeakradius(self, rad: int = 5):
+    def setpeakradius(self, rad: int = 5) -> None:
+        """Set the peak radius parameter
+
+        Arguments:
+            rad: new radius (must be integer)
+
+        It is rarely necessary to change this from its default value.
+        """
         self.rad = rad
 
-    def setprewhiten(self, wht: float = -0.65):
+    def setprewhiten(self, wht: float = -0.65) -> None:
+        """Set the pre-whitening argument parameter
+
+        Arguments:
+            wht: new pre-whitening value (usually between -1 and 0)
+
+        It is rarely necessary to change this from its default value.
+        """
         self.wht = float(wht)
 
     def refine(self,
-               p1: ArrayLike, p2: ArrayLike,
-               size: int or ArrayLike,
-               iters : int = 1,
-               tolerance : float = 0) -> Tuple[ArrayLike, ArrayLike]:
+               p1: ArrayLike,
+               p2: ArrayLike,
+               size: ArrayLike,
+               iters: int = 1,
+               tolerance: float = 0) -> Tuple[ArrayLike, ArrayLike]:
         """Iteratively refine a pair of matching points
 
-    Arguments:
-
-        p1, p2: points in img1, img2 that putatively match
-        siz: size of window to grab around the points
+    Arguments:    
+        p1: point in img1 that putatively matches...
+        p2: ... point in img2
+        size: size of window to grab around the points
         iters: number of iterations to perform
-        tol: if positive, stop early if shift less than tol
+        tolerance: if positive, stop early if shift less than this
 
     Returns:
-
         p1: updated point in first image
         p2: updated point in second image
 
     The returned `p1` and `p2` are better estimates of the matching
     points in the two images.
 
+    If `size` is a single number, a square window is used. Otherwise,
+    `size` must comprise a (width, height)-pair.
+
     Up to `iters` iterations are performed. If at any time the
     Euclidean length of the refinement is less than `tolerance`, the
     process is ended early.
 
-    After `refine` returns, several properties are set on the Matcher:
+    After `refine` returns, additional information may be retrieved
+    from the properties set on the Matcher.
 
-       shifts: (x, y) pairs of shifts in each iteration
-    
-       peakwidths: (sx, sy) pairs of the size of the spectral peaks
-                   found in each iteration
-
-       snrs: signal-to-noise ratios found in each iteration
-
-       niters: the number of iterations performed
-
-    In addition, `shift`, `peakwidth`, and `snr` may be used to obtain
-    information from the final iteration.
-    """      
+        """      
         p1, p2, swms = refine(self.img1, self.img2, p1, p2, size,
                               iters=iters, tol=tolerance,
                               wht=self.wht, rad=self.rad, every=True)
@@ -255,18 +267,23 @@ class Matcher:
         return p1, p2
 
     @property
-    def niters(self):
+    def niters(self) -> int:
+        """The number of iterations performed"""
         return len(self.shifts)
 
     @property
-    def shift(self):
+    def shift(self) -> ArrayLike:
+        """(x, y)-pair of shift found in final iteration"""
         return self.shifts[-1]
 
     @property
-    def peakwidth(self):
+    def peakwidth(self) -> ArrayLike:
+        """(sx, sy)-pair of the size of the spectral peaks
+                   found in final iteration"""
         return self.peakwidths[-1]
 
     @property
-    def snr(self):
+    def snr(self) -> float:
+        """Signal-to-noise ratio found in final iteration"""
         return self.snrs[-1]
     
