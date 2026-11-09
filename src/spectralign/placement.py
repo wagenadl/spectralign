@@ -76,7 +76,7 @@ class Placement:
         return tilemap
 
     
-    def rigid(self, fix=None) -> Dict[Tuple, Tuple]:
+    def rigid(self, fix: Optional[Tuple] = None) -> Dict[Tuple, Tuple]:
         """Rigid solution with only translation
 
         Arguments:
@@ -144,7 +144,7 @@ class Placement:
         return rigidpos
     
     
-    def affine(self, fix=None) -> Dict[Tuple, Affine]:
+    def affine(self, fix: Optional[Tuple] = None) -> Dict[Tuple, Affine]:
         """Rigid solution with affine transformations
 
         Arguments:
