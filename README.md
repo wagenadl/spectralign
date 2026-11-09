@@ -55,12 +55,65 @@ that represent rectangular areas within **model space**.
 
 ## Installation
 
-Spectralign may be obtained by
+Spectralign requires Python 3.12 or newer (check with `python --version`).
+Then spectralign may be obtained by
 
     pip install spectralign
 
+Note that on an older Python, pip does not stop with an error: it quietly
+installs the old release 0.2.0, which fails with a `SyntaxError` when
+imported. If `pip install spectralign` reports version 0.2.0, use a newer
+Python (for example in a virtual environment: `python3.12 -m venv .venv`).
+
 
 ## Examples
+
+### Conventions
+
+- Points are `(x, y)` pairs, with `x` to the right and `y` downward. An
+  `Image` is an array, so its `shape` is `(height, width)`. Window sizes
+  (`size=`) are given as `(width, height)`, or as one integer for a square.
+- `spectralign.Image(filename)` reads a file as a grayscale `float32` array
+  scaled to 0 to 1 (8-bit and 16-bit files are supported). If you build an
+  `Image` from a three-dimensional array instead, the colour channels are
+  averaged.
+- The tile labels you give to `addmatch` can be any hashable values. The
+  positions returned by `Placement.rigid` are the positions of the top left
+  corner of each tile in model space, defined up to a common offset (the
+  average position is set to zero).
+- In releases up to and including 0.4.2, `Matcher.refine` returns three
+  values, `p, p_, stats`. The unreleased development version (0.4.3) returns
+  `p, p_` unless the `Matcher` was created with `stats=True`. Writing
+  `p, p_, *_ = matcher.refine(...)` works with both.
+
+### Trying it without any image files
+
+The next two sections need photographs that are not part of this package. To
+check your installation first, this example cuts two overlapping tiles out of
+a made-up smooth picture, so that the true offset between them is known:
+
+```python
+import numpy as np
+from scipy.ndimage import gaussian_filter
+import spectralign
+
+rng = np.random.default_rng(1)
+scene = gaussian_filter(rng.random((620, 1000)), 3)
+scene = ((scene - scene.min()) / (scene.max() - scene.min())).astype(np.float32)
+
+# The second tile starts 400 pixels to the right of and 5 pixels below the first.
+img = spectralign.Image(scene[0:600, 0:600])
+img_ = spectralign.Image(scene[5:605, 400:1000])
+
+# Start from a rough guess (here: the same place in the overlap) and refine it.
+matcher = spectralign.Matcher(img, img_)
+p, p_, *_ = matcher.refine((500, 300), (100, 300), size=128, iters=3)
+
+placement = spectralign.Placement()
+placement.addmatch(1, 2, p, p_)
+pos = placement.rigid()
+print(np.array(pos[2]) - np.array(pos[1]))   # approximately [400, 5]
+```
 
 ### Two horizontally adjacent tiles
 
@@ -94,7 +147,7 @@ p, p_ = matcher.refine(p0, p0_, size=(512, 1024), iters=3)
 ```
 
 (For technical reasons, spectralign′s matcher is more efficient on
-regions whos dimensions are an integer power of two. But you could
+regions whose dimensions are an integer power of two. But you could
 have written `size=(0.2 * W, 0.8 * H)` and obtained largely identical
 results.)
 
@@ -269,6 +322,71 @@ for row in rows:
         renderer.render(t, imgs[t])
 out = renderer.image
 ```
+
+### A z-stack of serial sections
+
+For serial-section electron microscopy, the tiles are the sections of a
+stack, labelled by their number `z`. Neighbouring sections already overlap
+almost completely, so the starting point can simply be the same `(x, y)` in
+both sections. This example matches each section with the previous one at a
+3 × 3 grid of points, solves for all positions at once, and writes the
+aligned sections as PNG files. It assumes that a folder `sections` holds the
+images, sorted by name (a public 20-section stack is described below). The
+window is 512 pixels: see the note on window size below.
+
+```python
+import glob
+import os
+import spectralign
+
+files = sorted(glob.glob("sections/*.tif"))
+imgs = [spectralign.Image(f) for f in files]
+H, W = imgs[0].shape
+
+placement = spectralign.Placement()
+for z in range(1, len(imgs)):
+    matcher = spectralign.Matcher(imgs[z - 1], imgs[z])
+    for x in (0.25 * W, 0.5 * W, 0.75 * W):
+        for y in (0.25 * H, 0.5 * H, 0.75 * H):
+            p, p_, *_ = matcher.refine((x, y), (x, y), size=512, iters=3)
+            placement.addmatch(z - 1, z, p, p_)
+pos = placement.rigid()
+
+os.makedirs("aligned", exist_ok=True)
+renderer = spectralign.Renderer(rigid=pos, tilesize=(W, H))
+for z, img in enumerate(imgs):
+    renderer.clear()
+    renderer.render(z, img)
+    renderer.image.save(f"aligned/{z:04d}.png")
+```
+
+`renderer.image` is an `Image`, and its `save` method writes a file. For a
+stack, call `renderer.clear()` before rendering each section, so that every
+section gets its own output picture. The output images all have the same size
+and share one coordinate system, so the aligned stack can be opened in any
+viewer. Plot `pos` against `z` to see how far the sections had to move.
+
+Choose the window size with care. `refine` returns `stats` as its third value.
+If `stats.dist` (the length of the last shift) is more than about a pixel, or
+`stats.snr` is far below that of the other matches, the match did not converge,
+and a larger window is the first thing to try (see
+`help(spectralign.swim.RefinementStats)`). On the public stack below, windows of
+128 pixels gave 154 of 171 matches with an `snr` below 8, and positions that
+spanned about 44 pixels in x and 46 in y; windows of 512 pixels gave 1 of 171
+and spans of about 10 and 14 pixels. To check a result, measure the shift that
+is left between neighbouring output sections (for example with
+`cv2.phaseCorrelate`): it should be smaller than between the unaligned
+sections.
+
+A small stack to try this on: the 20 raw sections of a Drosophila larval
+ventral nerve cord (serial-section transmission electron microscopy,
+1024 × 1024 pixels) are in `stack1/raw` of
+<https://github.com/unidesigner/groundtruth-drosophila-vnc>. Copy the files
+into a folder called `sections`. The dataset is licensed CC BY-NC-SA 3.0; its
+README allows use for generating or testing non-commercial image segmentation
+software, and asks that publications derived from it cite Gerhard, Funke,
+Martel, Cardona and Fetter, "Segmented anisotropic ssTEM dataset of neural
+tissue" (figshare, 2013, <http://dx.doi.org/10.6084/m9.figshare.856713>).
 
 ## Development
 

@@ -402,7 +402,6 @@ class Image(np.ndarray):
             xy: center location of window as an (x, y)-pair
             tfm: transformation to apply
             siz: size of the window to extract
-            border: value for pixels outside of the source image
 
         Returns:
             the extracted sub image
